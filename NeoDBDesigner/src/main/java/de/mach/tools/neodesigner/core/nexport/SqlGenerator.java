@@ -1,6 +1,8 @@
 package de.mach.tools.neodesigner.core.nexport;
 
 import de.mach.tools.neodesigner.core.Strings;
+import de.mach.tools.neodesigner.core.datamodel.Domain.DomainId;
+import de.mach.tools.neodesigner.core.datamodel.Domain;
 import de.mach.tools.neodesigner.core.datamodel.Field;
 import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
 import de.mach.tools.neodesigner.core.datamodel.Index;
@@ -13,20 +15,19 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Konkreter SQL Generator für den Export.
+ * Konkreter SQL Generator fÃ¼r den Export.
  *
  * @author Chris Deter
  *
  */
 public class SqlGenerator implements Generator {
 
-  private static final int maxSpaceDataField = 22;
+  private static final int MAX_SPACE_DATA_FIELD = 22;
   private static final int MAX_SPACE_INDEX = 26;
   private static final Logger LOG = Logger.getLogger(SqlGenerator.class.getName());
-  private boolean concreteFkStatement = false;
 
   /**
-   * erzeugt Leerzeichen
+   * erzeugt Leerzeichen.
    *
    * @param count
    *          Anzahl der Leerzeichen
@@ -38,24 +39,6 @@ public class SqlGenerator implements Generator {
       sb.append(Strings.SPACE);
     }
     return sb.toString();
-  }
-
-  /**
-   * Konstruktor.
-   */
-  public SqlGenerator() {
-  }
-
-  /**
-   * Konstruktor
-   *
-   * @param concreteFkStatement
-   *          welche Variante des FK Statements verwendet werden soll, bei True
-   *          wird eine direkte Zuordnung gemacht. Diese kann von dieser
-   *          Software nicht wieder importiert werden.
-   */
-  public SqlGenerator(final boolean concreteFkStatement) {
-    this.concreteFkStatement = concreteFkStatement;
   }
 
   @Override
@@ -80,7 +63,7 @@ public class SqlGenerator implements Generator {
    * @param sb
    *          Stringbuilder der verwendet werden soll
    * @param table
-   *          die Tabelle die den PK enthält.
+   *          die Tabelle die den PK enthÃ¤lt.
    */
   private void createPrimaryKey(final StringBuilder sb, final Table table) {
     sb.append(String.format(Strings.SQL_PRIMKEY, table.getName() + Strings.EOL, table.getXpk().getName()));
@@ -98,7 +81,7 @@ public class SqlGenerator implements Generator {
    * @param sb
    *          Stringbuilder der verwendet werden soll
    * @param table
-   *          die Tabelle die die Indizes enthält.
+   *          die Tabelle die die Indizes enthÃ¤lt.
    */
   private void createIndizes(final StringBuilder sb, final Table table) {
     for (final Index index : table.getIndizies()) {
@@ -120,7 +103,7 @@ public class SqlGenerator implements Generator {
    * @param sb
    *          Stringbuilder der verwendet werden soll
    * @param table
-   *          die Tabelle die die Indizes enthält.
+   *          die Tabelle die die Indizes enthÃ¤lt.
    *
    *
    * @param index
@@ -138,29 +121,53 @@ public class SqlGenerator implements Generator {
   }
 
   /**
-   * Erstellt für alle Felder einer Tabelle SQL Statements
+   * Erstellt fÃ¼r alle Felder einer Tabelle SQL Statements.
    *
    * @param sb
    *          der Stringbuilder
    * @param table
-   *          die die Felder enthält
+   *          die die Felder enthÃ¤lt
    */
   private void createTableWithFields(final StringBuilder sb, final Table table) {
-    sb.append(String.format(Strings.SQL_TABLE_COMMENT, table.getName(), table.getCategory() + Strings.EOL));
+    sb.append(String.format(Strings.SQL_TABLE_COMMENT, table.getName(), table.getCategory(),
+        table.getComment().replaceAll(Strings.CARRIAGE_RETURN, Strings.EMPTYSTRING).replaceAll(Strings.NEWLINE,
+            Strings.HTML_BR) + Strings.EOL));
     // Erstelle Tabellen
     sb.append(String.format(Strings.SQL_TABLE, table.getName(), Strings.EOL));
     // mit Feldern
-    for (final Field field : table.getData()) {
+    for (final Field field : table.getFields()) {
       sb.append(String.format(Strings.SQL_TABLE_ELEM,
-          field.getName() + getSpace(SqlGenerator.maxSpaceDataField - field.getName().length()) + field.getTypeOfData(),
+          field.getName() + getSpace(SqlGenerator.MAX_SPACE_DATA_FIELD - field.getName().length())
+              + typeTransl(field.getDomain(), field.getDomainLength()),
           field.isRequired() ? Strings.NOTNULL : Strings.NULL, Strings.EOL));
     }
     sb.deleteCharAt(sb.length() - 3);
     sb.append(Strings.CLOSEDBRACKET + Strings.SEMICOLON + Strings.EOL);
   }
 
+  private String typeTransl(final DomainId domain, final int domainLength) {
+    String ret;
+    if (domain.equals(DomainId.STRING)) {
+      ret = Strings.IMPORT_TYPE_VARCHAR + Strings.OPENBRACKET + domainLength + Strings.CLOSEDBRACKET;
+    } else if (domain.equals(DomainId.LOOKUP)) {
+      ret = Strings.IMPORT_TYPE_VARCHAR + Strings.OPENBRACKET + 20 + Strings.CLOSEDBRACKET;
+    } else if (domain.equals(DomainId.AMOUNT)) {
+      ret = Strings.IMPORT_TYPE_NUMBER + Strings.OPENBRACKET + 18 + Strings.COMMA + 5 + Strings.CLOSEDBRACKET;
+    } else if (domain.equals(DomainId.COUNTER)) {
+      ret = Strings.IMPORT_TYPE_INT;
+    } else if (domain.equals(DomainId.BOOLEAN)) {
+      ret = Strings.IMPORT_TYPE_SMALLINT;
+    } else if (domain.equals(DomainId.BLOB)) {
+      ret = Strings.IMPORT_TYPE_BLOB;
+    } else {
+      // CLOB, DATE
+      ret = Domain.getName(domain).toUpperCase();
+    }
+    return ret;
+  }
+
   /**
-   * Erstellt für alle Foreignkeys aller Tabellen SQL Statements
+   * Erstellt fÃ¼r alle Foreignkeys aller Tabellen SQL Statements.
    *
    * @param tl
    *          die Liste mit allen Tabellen
@@ -180,10 +187,6 @@ public class SqlGenerator implements Generator {
         sb.deleteCharAt(sb.length() - 2);
         sb.deleteCharAt(sb.length() - 1);
         sb.append(String.format(Strings.SQL_FOREIGNKEY_END, Strings.EOL, fk.getRefTable().getName()));
-        // erweiterte FK generierung (mit zuweisung der Felder)
-        if (concreteFkStatement) {
-          createAdvFkStatement(sb, fk);
-        }
         sb.append(Strings.CLOSEDBRACKET + Strings.SPACE + Strings.SEMICOLON + Strings.EOL);
       }
     }
@@ -194,39 +197,20 @@ public class SqlGenerator implements Generator {
    * verweist.
    *
    * @param fk
-   *          der Felder und RefTable mit PK enthält
-   * @return eine sortierte Liste mit Feldern die die gleiche Reihenfolge wie
-   *         der PK hat
+   *          der Felder und RefTable mit PK enthÃ¤lt
+   * @return eine sortierte Liste mit Feldern die die gleiche Reihenfolge wie der
+   *         PK hat
    */
   private List<Field> sortPkElem(final ForeignKey fk) {
     // Sortiere Felder nach PK Reihenfolge
     final List<Field> sortedList = new ArrayList<>();
     for (final Field rf : fk.getRefTable().getXpk().getFieldList()) {
-      for (final Field ff : fk.getFieldList()) {
-        if (fk.getAltName(ff.getName()).equals(rf.getName())) {
+      for (final Field ff : fk.getIndex().getFieldList()) {
+        if (fk.getIndex().getAltName(ff.getName()).equals(rf.getName())) {
           sortedList.add(ff);
         }
       }
     }
     return sortedList;
-  }
-
-  /**
-   * Weist einem Fremdschlüssel Statement explizite Positionen der Elemete im PK
-   * zu.
-   *
-   * @param sb
-   *          Stringbuilder mit Statement
-   * @param foreignKey
-   *          der Fremdschlüssel
-   */
-  private void createAdvFkStatement(final StringBuilder sb, final ForeignKey foreignKey) {
-    sb.append(Strings.OPENBRACKET);
-    for (final Field f : foreignKey.getFieldList()) {
-      sb.append(String.format(Strings.COMMAVALUE, foreignKey.getAltName(f.getName())));
-    }
-    sb.deleteCharAt(sb.length() - 2);
-    sb.deleteCharAt(sb.length() - 1);
-    sb.append(Strings.CLOSEDBRACKET);
   }
 }

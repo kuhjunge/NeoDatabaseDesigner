@@ -1,6 +1,27 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.core.nimport;
 
-import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
 import de.mach.tools.neodesigner.core.datamodel.Table;
 import de.mach.tools.neodesigner.core.nimport.antlrsql.SQLLexer;
 import de.mach.tools.neodesigner.core.nimport.antlrsql.SQLParser;
@@ -8,7 +29,7 @@ import de.mach.tools.neodesigner.database.DatabaseConnection;
 
 import java.util.List;
 
-import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -22,52 +43,24 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
  */
 public class ImportSqlTask extends ImportTask {
   private final SqlImportListener sqlListener = new SqlImportListener();
+  private final String input;
 
   /**
    * Konstruktor.
-   * 
+   *
    * @param db
    *          die Datenbank
    * @param in
    *          der Input der Importiert werden soll
    */
   public ImportSqlTask(final DatabaseConnection db, final String in) {
-    super(db, in);
+    super(db);
+    input = in;
   }
 
   @Override
-  protected void doImport(final String input) {
-    final List<Table> tl = parse(input);
-    setMax(tl.size() * 2);
-    updateProgressMessage(0, "writing tables");
-    getDatabaseCon().createIndexOnDb();
-    for (final Table t : tl) {
-      getDatabaseCon().importTable(t);
-      updateBar();
-    }
-    updateProgressMessage(tl.size(), "writing ForeignKeys");
-    getDatabaseCon().createIndexOnDb();
-    for (final Table t : tl) {
-      for (final ForeignKey i : t.getForeignKeys()) {
-        getDatabaseCon().importForeignKey(i);
-      }
-      updateBar();
-    }
-    updateProgressMessage(getMax(), "cleanup");
-    getDatabaseCon().disconnectDb();
-  }
-
-  /**
-   * Diese Methode baut mithilfe von ANTLR einen Parse Tree und wandelt diesen
-   * dann in eine Liste von Tabellen um.
-   *
-   * @param s
-   *          der Eingabestring
-   * @return eine Liste mit Tabellen
-   */
-  private List<Table> parse(final String s) {
-    final ANTLRInputStream input = new ANTLRInputStream(s.toCharArray(), s.length());
-    final Lexer lexer = new SQLLexer(input);
+  protected List<Table> parse() {
+    final Lexer lexer = new SQLLexer(CharStreams.fromString(input));
     final CommonTokenStream tokens = new CommonTokenStream(lexer);
     final SQLParser parser = new SQLParser(tokens);
     parser.setBuildParseTree(true); // tell ANTLR to build a parse tree

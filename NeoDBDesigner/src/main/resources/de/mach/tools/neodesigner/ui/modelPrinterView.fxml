@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.RadioMenuItem?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox alignment="TOP_CENTER" xmlns="http://javafx.com/javafx/8.0.141" xmlns:fx="http://javafx.com/fxml/1">
+  <children>
+    <MenuBar VBox.vgrow="NEVER">
+      <menus>
+        <Menu mnemonicParsing="false" text="File">
+          <items>
+            <MenuItem mnemonicParsing="false" onAction="#explorerConfigPath" text="open Config Path" />
+                  <MenuItem mnemonicParsing="false" onAction="#explorerTempPath" text="open Temp Path" />
+                  <MenuItem mnemonicParsing="false" onAction="#explorerMikTexPath" text="open MikTex Path" />
+                  <MenuItem mnemonicParsing="false" onAction="#explorerPdfPath" text="open PDF" />
+          </items>
+        </Menu>
+        <Menu mnemonicParsing="false" text="Configuration">
+          <items>
+                  <RadioMenuItem fx:id="loescheTemp" mnemonicParsing="false" selected="true" text="auto clear temp folder" />
+          </items>
+        </Menu>
+      </menus>
+    </MenuBar>
+      <VBox alignment="CENTER" spacing="5.0">
+         <children>
+            <HBox alignment="CENTER" spacing="10.0">
+               <children>
+                  <Label prefWidth="75.0" text="PDF Title:" />
+                  <TextField fx:id="pdfTitle" prefHeight="25.0" prefWidth="334.0" />
+               </children>
+            </HBox>
+            <HBox alignment="CENTER" spacing="10.0">
+               <children>
+                  <Label prefWidth="75.0" text="MikTex Path:" />
+                  <Label fx:id="labelMikTexPfad" prefHeight="17.0" prefWidth="250.0" text="..." />
+                  <Button fx:id="btnChooseMikTex" mnemonicParsing="false" onAction="#openPathMikTex" prefHeight="25.0" prefWidth="74.0" text="select" />
+               </children>
+            </HBox>
+            <HBox alignment="CENTER" spacing="10.0">
+               <children>
+                  <Label prefWidth="75.0" text="PDF Output:" />
+                  <Label fx:id="labelPdfOutput" prefWidth="250.0" text="..." />
+                  <Button mnemonicParsing="false" onAction="#openPdfOutput" prefHeight="25.0" prefWidth="74.0" text="select" />
+               </children>
+            </HBox>
+            <ProgressBar id="progressBarPDF" fx:id="progressBarPdf" prefHeight="18.0" prefWidth="420.0" progress="0.0" />
+            <HBox alignment="BOTTOM_CENTER" spacing="10.0">
+               <children>
+                  <Label fx:id="details" prefWidth="330.0" text="." />
+                  <Button id="btnCreatePdf" fx:id="btnCreatePdf" mnemonicParsing="false" onAction="#handleSubmitButtonAction" prefWidth="74.0" text="create PDF" />
+               </children>
+            </HBox>
+         </children>
+         <padding>
+            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+         </padding>
+         <VBox.margin>
+            <Insets />
+         </VBox.margin>
+      </VBox>
+  </children>
+</VBox>

@@ -1,13 +1,30 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.core.datamodel.impl;
 
-import de.mach.tools.neodesigner.core.datamodel.Field;
 import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
 import de.mach.tools.neodesigner.core.datamodel.Index;
-import de.mach.tools.neodesigner.core.datamodel.Node;
 import de.mach.tools.neodesigner.core.datamodel.Table;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Implementation von ForeignKey.
@@ -15,7 +32,7 @@ import java.util.List;
  * @author Chris Deter
  *
  */
-public class ForeignKeyImpl extends IndexImpl implements ForeignKey {
+public class ForeignKeyImpl extends NodeImpl implements ForeignKey {
 
   private Table refTable = null;
   private Index fieldIndex = null;
@@ -28,13 +45,8 @@ public class ForeignKeyImpl extends IndexImpl implements ForeignKey {
    * @param nodeOf
    *          Tabelle dem der FK zugeordnet ist
    */
-  public ForeignKeyImpl(final String name, final Node nodeOf) {
-    super(name, Index.Type.R, nodeOf);
-  }
-
-  @Override
-  public Type getType() {
-    return Type.R;
+  public ForeignKeyImpl(final String name, final Table nodeOf) {
+    super(name, nodeOf);
   }
 
   @Override
@@ -55,51 +67,6 @@ public class ForeignKeyImpl extends IndexImpl implements ForeignKey {
   @Override
   public void setIndex(final Index i) {
     fieldIndex = i;
-  }
-
-  @Override
-  public final List<Field> getFieldList() {
-    List<Field> listOfFields = new ArrayList<>();
-    if (fieldIndex != null) {
-      listOfFields = fieldIndex.getFieldList();
-    }
-    return listOfFields;
-  }
-
-  @Override
-  public void addField(final Field f) {
-    fieldIndex.addField(f);
-  }
-
-  @Override
-  public void addField(final Field f, final String altName) {
-    fieldIndex.addField(f, altName);
-
-  }
-
-  @Override
-  public void removeField(final int i) {
-    fieldIndex.removeField(i);
-  }
-
-  @Override
-  public void clearFieldList() {
-    fieldIndex.clearFieldList();
-  }
-
-  @Override
-  public String getOrder(final String name) {
-    return fieldIndex.getOrder(name);
-  }
-
-  @Override
-  public void setAltName(final String name, final String altName) {
-    fieldIndex.setAltName(name, altName);
-  }
-
-  @Override
-  public String getAltName(final String name) {
-    return fieldIndex.getAltName(name);
   }
 
   @Override

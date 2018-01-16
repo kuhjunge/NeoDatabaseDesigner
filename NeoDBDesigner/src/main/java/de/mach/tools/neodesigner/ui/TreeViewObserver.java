@@ -1,3 +1,25 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.ui;
 
 import de.mach.tools.neodesigner.core.Model;
@@ -21,7 +43,7 @@ import org.controlsfx.control.textfield.AutoCompletionBinding;
 import org.controlsfx.control.textfield.TextFields;
 
 /**
- * Observer f�r den Treeview
+ * Observer für den Treeview.
  *
  * @author Chris Deter
  *
@@ -58,9 +80,10 @@ public class TreeViewObserver implements Observer {
   }
 
   /**
-   * Observe Methode
+   * Observe Methode.
    *
    * @param o
+   *          Observable
    */
   private void observe(final Observable o) {
     o.addObserver(this);
@@ -69,10 +92,11 @@ public class TreeViewObserver implements Observer {
   @Override
   public void update(final Observable o, final Object arg) {
     Platform.runLater(() -> {
-      clearData();
-      loadTreeView(ndbm.getAllLocalTables());
       loadAutoComplete();
+      clearData();
+      loadTreeViewElements(ndbm.getListWithTableNames());
     });
+
   }
 
   /**
@@ -84,57 +108,80 @@ public class TreeViewObserver implements Observer {
   }
 
   /**
-   * L�d die Treeview Ansicht
+   * Läd die Treeview Ansicht.
    *
    * @param listOfTables
+   *          Liste aller Tabellen im Datenmodell
    */
-  private void loadTreeView(final List<Table> listOfTables) {
+  private void loadTreeViewElements(final List<String> listOfTables) {
     final TreeItem<String> rootItem = treeView.getRoot();
     rootItem.getChildren().clear();
-    for (final Table t : listOfTables) {
-      rootItem.getChildren().add(createItems(t));
+    for (final String tableName : listOfTables) {
+      final TreeItem<String> ti = createItemMain(tableName);
+      ti.expandedProperty().addListener(b -> createItemsDetail(ti, ndbm.getTable(ti.getValue()).get()));
+      rootItem.getChildren().add(ti);
     }
     treeView.refresh();
     listenerTreeView.attach();
   }
 
   /**
-   * erstellt ein Item im Treeview
+   * erstellt ein Item im Treeview.
    *
    * @param t
-   * @return
+   *          die Tabelle
+   * @return TreeItem für diese Tabelle
    */
-  private TreeItem<String> createItems(final Table t) {
-    final TreeItem<String> item = new TreeItem<>(t.getName());
+  private TreeItem<String> createItemMain(final String tableName) {
+    final TreeItem<String> item = new TreeItem<>(tableName);
     final TreeItem<String> field = new TreeItem<>(Strings.NAME_FIELDS);
     item.getChildren().add(field);
-    for (final Field f : t.getData()) {
-      field.getChildren().add(new TreeItem<>(f.getName()));
-    }
-
     final TreeItem<String> prim = new TreeItem<>(Strings.NAME_PRIMKEY);
     item.getChildren().add(prim);
-    prim.getChildren().add(new TreeItem<>(t.getXpk().getName()));
-
     final TreeItem<String> index = new TreeItem<>(Strings.NAME_INDEXES);
     item.getChildren().add(index);
-    for (final Index i : t.getIndizies()) {
-      index.getChildren().add(new TreeItem<>(i.getName()));
-    }
-
     final TreeItem<String> foreign = new TreeItem<>(Strings.NAME_FKS);
     item.getChildren().add(foreign);
-    for (final ForeignKey i : t.getForeignKeys()) {
-      foreign.getChildren().add(new TreeItem<>(i.getName() + " (" + i.getRefTable().getName() + ")"));
-    }
     return item;
   }
 
   /**
-   * f�gt Autocomplete Funktion zum Suchfeld hinzu
+   * erstellt ein Item im Treeview.
+   *
+   * @param t
+   *          die Tabelle
+   * @return TreeItem für diese Tabelle
+   */
+  private void createItemsDetail(final TreeItem<String> ti, final Table t) {
+    final TreeItem<String> field = ti.getChildren().get(0);
+    for (final Field f : t.getFields()) {
+      field.getChildren().add(new TreeItem<>(f.getName()));
+    }
+    final TreeItem<String> prim = ti.getChildren().get(1);
+    prim.getChildren().add(new TreeItem<>(t.getXpk().getName()));
+    final TreeItem<String> index = ti.getChildren().get(2);
+    for (final Index i : t.getIndizies()) {
+      index.getChildren().add(new TreeItem<>(i.getName()));
+    }
+    final TreeItem<String> foreign = ti.getChildren().get(3);
+    for (final ForeignKey i : t.getForeignKeys()) {
+      foreign.getChildren().add(new TreeItem<>(i.getName() + " (" + i.getRefTable().getName() + ")"));
+    }
+  }
+
+  /**
+   * fügt Autocomplete Funktion zum Suchfeld hinzu.
    */
   public void loadAutoComplete() {
     autocomplete.dispose();
     autocomplete = TextFields.bindAutoCompletion(searchText, ndbm.getListWithTableNames());
+  }
+
+  /**
+   * Läd die Treeview Ansicht.
+   */
+  public void loadTreeView() {
+    clearData();
+    loadTreeViewElements(ndbm.getListWithTableNames());
   }
 }

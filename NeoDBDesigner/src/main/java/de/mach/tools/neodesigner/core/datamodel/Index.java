@@ -1,3 +1,25 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.core.datamodel;
 
 import java.util.List;
@@ -10,18 +32,18 @@ import java.util.List;
  */
 public interface Index extends Node {
   public enum Type {
-    XPK, R, XIF, XAK, XIE
+    XPK, XIF, XAK, XIE
   }
 
   /**
-   * getter für Type.
+   * getter fÃ¼r Type.
    *
    * @return den Type
    */
   Type getType();
 
   /**
-   * setter für Type.
+   * setter fÃ¼r Type.
    *
    * @param s
    *          Der neue Type
@@ -44,14 +66,14 @@ public interface Index extends Node {
   void setUnique(boolean unique);
 
   /**
-   * Gibt eine Lise mit allen Feldern dieses Indexes zurück.
+   * Gibt eine Liste mit allen Feldern dieses Indexes sortiert zurÃ¼ck.
    *
    * @return Liste mit allen Feldern
    */
   List<Field> getFieldList();
 
   /**
-   * fügt ein Feld zum Index hinzu.
+   * fÃ¼gt ein Feld zum Index hinzu.
    *
    * @param f
    *          das Feld
@@ -59,7 +81,7 @@ public interface Index extends Node {
   void addField(Field f);
 
   /**
-   * Fügt ein Feld mit alternativen Namen zum Index hinzu.
+   * FÃ¼gt ein Feld mit alternativen Namen zum Index hinzu.
    *
    * @param f
    *          das Feld
@@ -77,7 +99,7 @@ public interface Index extends Node {
   void removeField(int i);
 
   /**
-   * löscht alle Felder des Indexes.
+   * lÃ¶scht alle Felder des Indexes.
    */
   void clearFieldList();
 
@@ -92,7 +114,7 @@ public interface Index extends Node {
   public void setAltName(String name, String altName);
 
   /**
-   * gibt den alternativen Namen eines Feldes zurück.
+   * gibt den alternativen Namen eines Feldes zurÃ¼ck.
    *
    * @param name
    *          Name des Feldes
@@ -101,11 +123,40 @@ public interface Index extends Node {
   public String getAltName(String name);
 
   /**
-   * gibt einen String zurück welcher die Ordnung dieses Elementes ausdrückt.
+   * gibt anhand des alternativen Namen den richtigen Namen zurÃ¼ck.
+   *
+   * @param name
+   *          alternativer Name des Feldes
+   * @return Name des Feldes
+   */
+  public String getNameFromAltName(String name);
+
+  /**
+   * gibt einen Int zurÃ¼ck welcher die Ordnung dieses Elementes ausdrÃ¼ckt.
    *
    * @param name
    *          Name des elementes
    * @return die Orndungszahl
    */
-  String getOrder(String name);
+  Integer getOrder(String name);
+
+  /**
+   * Ersetzt ein Feld.
+   *
+   * @param field
+   *          das neue feld
+   * @param oldFieldName
+   *          der Name des alten feldes
+   */
+  void replaceField(final Field field, final String oldFieldName);
+
+  /**
+   * Setzt die Order eines Feldes manuell.
+   *
+   * @param name
+   *          Name des Feldes
+   * @param order
+   *          neue Ordnung des Feldes
+   */
+  void setOrder(String name, int order);
 }

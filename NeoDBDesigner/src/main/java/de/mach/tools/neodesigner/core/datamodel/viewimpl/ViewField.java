@@ -1,8 +1,39 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.core.datamodel.viewimpl;
 
+import de.mach.tools.neodesigner.core.Strings;
+import de.mach.tools.neodesigner.core.Util;
+import de.mach.tools.neodesigner.core.datamodel.Domain.DomainId;
+import de.mach.tools.neodesigner.core.datamodel.Domain;
 import de.mach.tools.neodesigner.core.datamodel.Field;
-import de.mach.tools.neodesigner.core.datamodel.Node;
+import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
+import de.mach.tools.neodesigner.core.datamodel.Index;
+import de.mach.tools.neodesigner.core.datamodel.Table;
 import de.mach.tools.neodesigner.core.datamodel.impl.FieldImpl;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -10,40 +41,41 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 /**
- * Implementation von Field für den View.
+ * Implementation von Field fÃ¼r den View.
  *
  * @author Chris Deter
  *
  */
-public class ViewField extends ViewNodeImpl implements Field {
-  private final StringProperty typeOfData = new SimpleStringProperty();
+public class ViewField extends ViewNodeImpl<Field> implements Field {
+  private final StringProperty domain = new SimpleStringProperty();
   private final BooleanProperty isRequired = new SimpleBooleanProperty(true);
   private final BooleanProperty isPartOfPrimary = new SimpleBooleanProperty(false);
   private boolean modifiedType = false;
   private boolean modifiedReq = false;
   private boolean modifiedPrim = false;
-  private final Field data;
 
   /**
    * Konstruktor.
    *
    * @param name
    *          Name des Feldes
-   * @param datatype
+   * @param domain
    *          Datentyp des Feldes
+   * @param domainLength
+   *          Die LÃ¤nge des Datentypes
    * @param req
    *          ist das Feld ein Pflichtfeld?
    * @param nodeOf
    *          Tabelle dem das Feld zugeordnet ist
    */
-  public ViewField(final String name, final String datatype, final boolean req, final Node nodeOf) {
-    super(new FieldImpl(name, datatype, req, nodeOf));
-    data = (Field) super.getNode();
+  public ViewField(final String name, final DomainId domain, final int domainLength, final boolean req,
+      final Table nodeOf, final String comment) {
+    super(new FieldImpl(name, domain, domainLength, req, comment, nodeOf));
     setListener();
   }
 
   /**
-   * Konstruktor für den Imprort eines vorhanden Feldes.
+   * Konstruktor fÃ¼r den Imprort eines vorhanden Feldes.
    *
    * @param f
    *          das Feld
@@ -51,41 +83,89 @@ public class ViewField extends ViewNodeImpl implements Field {
    *          Die tabelle dem das neue Feld zugeordnet werden soll
    */
   public ViewField(final Field f, final ViewTable t) {
-    super(new FieldImpl(f.getName(), f.getTypeOfData(), f.isRequired(), t));
-    data = (Field) super.getNode();
-    data.setPartOfPrimaryKey(f.isPartOfPrimaryKey());
+    super(new FieldImpl(f.getName(), f.getDomain(), f.getDomainLength(), f.isRequired(), f.getComment(), t));
+    getNode().setPartOfPrimaryKey(f.isPartOfPrimaryKey());
     setListener();
   }
 
   /**
-   * Setzt die Listener um änderungen im Objekt auch im internen Model zu ändern
+   * Setzt die Listener um Ã¤nderungen im Objekt auch im internen Model zu Ã¤ndern.
    */
   private void setListener() {
-    setTypeOfData(data.getTypeOfData());
-    setRequired(data.isRequired());
-    setPartOfPrimaryKey(data.isPartOfPrimaryKey());
-    typeOfData.addListener((obs, oldValue, newValue) -> {
-      modifiedType = true;
-      data.setTypeOfData(newValue);
-    });
+    domain.set(Domain.getName(getNode().getDomain()) + getDomainExtra());
+    setRequired(getNode().isRequired());
+    setPartOfPrimaryKey(getNode().isPartOfPrimaryKey());
+    domain.addListener((obs, oldValue, newValue) -> setDomainIntern(newValue));
     isRequired.addListener((obs, oldValue, newValue) -> {
       modifiedReq = true;
-      data.setRequired(newValue);
+      setModified();
+      getNode().setRequired(newValue);
+      isRequired.set(getNode().isRequired());
     });
     isPartOfPrimary.addListener((obs, oldValue, newValue) -> {
       modifiedPrim = true;
-      data.setPartOfPrimaryKey(newValue);
+      getNode().setPartOfPrimaryKey(newValue);
+      isPartOfPrimary.set(getNode().isPartOfPrimaryKey());
+      isRequired.set(getNode().isRequired());
+      setModified();
     });
   }
 
-  @Override
+  private String getDomainExtra() {
+    return getNode().getDomainLength() > 0 ? Strings.COLON + getNode().getDomainLength() : Strings.EMPTYSTRING;
+  }
+
+  /**
+   * Speichert den neuen Wert nur wenn es erlaubt ist. Zudem wird der neue Wert
+   * mit dem Internen Model abgeglichen.
+   *
+   * @param val
+   *          der neue Wert
+   */
+  private void setDomainIntern(final String val) {
+    final String[] completeDomain = val.split(Strings.COLON);
+    final String domainName = completeDomain[0];
+    int domainSize = 0;
+    if (completeDomain.length > 1) {
+      domainSize = Util.tryParseInt(completeDomain[1]);
+    }
+    if (!domainName.equals(Domain.getName(getNode().getDomain())) || domainSize != getNode().getDomainLength()) {
+      if (!hasIndex()) {
+        modifiedType = true;
+        getNode().setDomain(Domain.getFromName(domainName));
+        getNode().setDomainLength(domainSize);
+        setModified();
+      }
+      domain.set(Domain.getName(getNode().getDomain()) + getDomainExtra());
+    }
+  }
+
   public String getTypeOfData() {
-    return typeOfData.get();
+    return domain.get();
+  }
+
+  public void setTypeOfData(final String typeOfData) {
+    domain.set(typeOfData);
   }
 
   @Override
-  public void setTypeOfData(final String typeOfData) {
-    this.typeOfData.set(typeOfData);
+  public DomainId getDomain() {
+    return getNode().getDomain();
+  }
+
+  @Override
+  public void setDomain(final DomainId did) {
+    domain.set(did.name() + Strings.COLON + getNode().getDomainLength());
+  }
+
+  @Override
+  public int getDomainLength() {
+    return getNode().getDomainLength();
+  }
+
+  @Override
+  public void setDomainLength(final int length) {
+    domain.set(getNode().getDomain() + Strings.COLON + length);
   }
 
   @Override
@@ -95,7 +175,8 @@ public class ViewField extends ViewNodeImpl implements Field {
 
   @Override
   public void setRequired(final boolean isRequired) {
-    this.isRequired.set(isRequired);
+    getNode().setRequired(isRequired);
+    this.isRequired.set(getNode().isRequired());
   }
 
   @Override
@@ -105,7 +186,9 @@ public class ViewField extends ViewNodeImpl implements Field {
 
   @Override
   public void setPartOfPrimaryKey(final boolean prim) {
-    isPartOfPrimary.set(prim);
+    getNode().setPartOfPrimaryKey(prim);
+    isPartOfPrimary.set(getNode().isPartOfPrimaryKey());
+    isRequired.set(getNode().isRequired());
   }
 
   @Override
@@ -117,60 +200,71 @@ public class ViewField extends ViewNodeImpl implements Field {
   }
 
   /**
-   * View Methode um zu erkennnen ob ein Typ verändert wurde.
+   * View Methode um zu erkennnen ob ein Typ verÃ¤ndert wurde.
    *
-   * @return True wenn ein Typ verändert wurde
+   * @return True wenn ein Typ verÃ¤ndert wurde
    */
-  public boolean isModifiedType() {
+  public boolean isModifiedDomain() {
     return modifiedType;
   }
 
   /**
-   * View Methode um zu erkennen ob die Zuorndung zum Primärschlüssel geändert
+   * View Methode um zu erkennen ob die Zuorndung zum PrimÃ¤rschlÃ¼ssel geÃ¤ndert
    * wurde.
    *
-   * @return True wenn die Zuordnung zum Primärschlüssel verändert wurde
+   * @return True wenn die Zuordnung zum PrimÃ¤rschlÃ¼ssel verÃ¤ndert wurde
    */
   public boolean isModifiedPrim() {
     return modifiedPrim;
   }
 
   /**
-   * View Methode um zu erkennen ob die Eigenschaft Required verändert wurde
-   * 
-   * @return True wenn die Eigenschaft Required verändert wurde
+   * View Methode um zu erkennen ob die Eigenschaft Required verÃ¤ndert wurde.
+   *
+   * @return True wenn die Eigenschaft Required verÃ¤ndert wurde
    */
   public boolean isModifiedReq() {
     return modifiedReq;
   }
 
   /**
-   * View Methode um eine Prim Property für die Tabelle in der GUI zu bekommen
-   * 
-   * @return Property Eigenschaft für View
+   * View Methode um eine Prim Property fÃ¼r die Tabelle in der GUI zu bekommen.
+   *
+   * @return Property Eigenschaft fÃ¼r View
    */
   public BooleanProperty primProperty() {
     return isPartOfPrimary;
   }
 
   /**
-   * View Methode um eine typeOfData Property für die Tabelle in der GUI zu
-   * bekommen
-   * 
-   * @return Property Eigenschaft für View
+   * View Methode um eine typeOfData Property fÃ¼r die Tabelle in der GUI zu
+   * bekommen.
+   *
+   * @return Property Eigenschaft fÃ¼r View
    */
   public StringProperty typeOfDataProperty() {
-    return typeOfData;
+    return domain;
   }
 
   /**
-   * View Methode um eine Required Property für die Tabelle in der GUI zu
-   * bekommen
-   * 
-   * @return Property Eigenschaft für View
+   * View Methode um eine Required Property fÃ¼r die Tabelle in der GUI zu
+   * bekommen.
+   *
+   * @return Property Eigenschaft fÃ¼r View
    */
   public BooleanProperty requiredProperty() {
     return isRequired;
+  }
+
+  /**
+   * Funktion zum Herausfinden ob dieses Feldn einem Index zugeordnet ist.
+   *
+   * @return true wenn ein Index existiert
+   */
+  public boolean hasIndex() {
+    final List<Index> li = getTable().getIndizies().stream().filter(l -> l.getFieldList().contains(this))
+        .collect(Collectors.toList());
+    return !li.isEmpty() ? true : false;
   }
 
   @Override
@@ -185,5 +279,10 @@ public class ViewField extends ViewNodeImpl implements Field {
   @Override
   public int hashCode() {
     return getName().hashCode();
+  }
+
+  @Override
+  public List<ForeignKey> getConnectedFks() {
+    return getNode().getConnectedFks();
   }
 }

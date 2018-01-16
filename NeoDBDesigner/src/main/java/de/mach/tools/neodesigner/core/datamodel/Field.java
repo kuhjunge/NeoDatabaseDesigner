@@ -1,4 +1,29 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.core.datamodel;
+
+import de.mach.tools.neodesigner.core.datamodel.Domain.DomainId;
+import java.util.List;
 
 /**
  * Representiert eine Spalte oder Feld im relationalen Datenbankmodel.
@@ -8,26 +33,43 @@ package de.mach.tools.neodesigner.core.datamodel;
  */
 public interface Field extends Node {
   /**
-   * Gibt zur�ck was f�r ein Datentyp das Feld hat.
+   * Gibt zurück was für ein Datentyp das Feld hat.
    *
-   * @return Datentyp als String
+   * @return Datentyp
    */
-  public String getTypeOfData();
+  DomainId getDomain();
 
   /**
-   * setter f�r den Datentyp.
+   * setter für den Datentyp.
    *
-   * @param typeOfData
+   * @param domain
    *          die Daten
    */
-  public void setTypeOfData(String typeOfData);
+  void setDomain(DomainId domain);
+
+  /**
+   * Gibt die Domaingröße zurück. Diese Methode ist nur relevant für die Domain
+   * "String".
+   *
+   * @return Größe der Domain als int
+   */
+  int getDomainLength();
+
+  /**
+   * Setzt die Domainlänge. Diese Methode ist nur relevant für die Domain
+   * "String".
+   *
+   * @param length
+   *          Die neue Länge
+   */
+  void setDomainLength(int length);
 
   /**
    * getter required.
    *
    * @return ob das Feld required ist
    */
-  public boolean isRequired();
+  boolean isRequired();
 
   /**
    * setter required.
@@ -35,20 +77,27 @@ public interface Field extends Node {
    * @param isRequired
    *          Boolean ob Feld notwendig ist
    */
-  public void setRequired(boolean isRequired);
+  void setRequired(boolean isRequired);
 
   /**
    * getter is Part of Prim Key.
    *
-   * @return boolean ob das Feld Teil eines Prim�rschl�ssels ist
+   * @return boolean ob das Feld Teil eines Primärschlüssels ist
    */
-  public boolean isPartOfPrimaryKey();
+  boolean isPartOfPrimaryKey();
 
   /**
    * setter ist part of Prim Key.
    *
    * @param prim
-   *          setzt ob das Feld Teil eines prim Schl�ssels ist
+   *          setzt ob das Feld Teil eines prim Schlüssels ist
    */
-  public void setPartOfPrimaryKey(boolean prim);
+  void setPartOfPrimaryKey(boolean prim);
+
+  /**
+   * Gibt alle verknüpften Fremdschlüssel zurück.
+   *
+   * @return gibt alle verknüpften Fremdschlüssel zurück
+   */
+  List<ForeignKey> getConnectedFks();
 }

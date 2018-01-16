@@ -1,6 +1,29 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.core.datamodel;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Representiert eine Tabelle aus dem Relationalen Datenbankmodel aus der
@@ -11,16 +34,16 @@ import java.util.List;
  */
 public interface Table extends Node {
   /**
-   * gibt die Spalten der Tabelle zurück.
+   * gibt die Spalten der Tabelle zurÃ¼ck.
    *
    * @return Spalten der Tabelle
    */
-  List<Field> getData();
+  List<Field> getFields();
 
   /**
    * getter.
    *
-   * @return Primärschlüssel
+   * @return PrimÃ¤rschlÃ¼ssel
    */
   Index getXpk();
 
@@ -28,31 +51,48 @@ public interface Table extends Node {
    * setter.
    *
    * @param xpk
-   *          neuer Primärschlüssel
+   *          neuer PrimÃ¤rschlÃ¼ssel
    */
   void setXpk(Index xpk);
 
   /**
-   * gibt eine Liste mit Foreignkeys zurück.
+   * gibt eine Liste mit Foreignkeys zurÃ¼ck.
    *
    * @return liste mit Foreignkeys
    */
   List<ForeignKey> getForeignKeys();
 
   /**
-   * gibt eine Liste mit Indizes zurück.
+   * gibt eine Liste mit referenzierenden Foreignkeys zurÃ¼ck, die auf diese
+   * Tabelle zeigen.
+   *
+   * @return liste mit Foreignkeys
+   */
+  List<ForeignKey> getRefForeignKeys();
+
+  /**
+   * gibt eine Liste mit Indizes zurÃ¼ck.
    *
    * @return Liste mit Indizes
    */
   List<Index> getIndizies();
 
   /**
-   * fügt ein Feld zur Tabelle hinzu.
+   * fÃ¼gt ein Feld zur Tabelle hinzu.
    *
    * @param f
-   *          das Feld was zur Tabelle hinzugefügt wird.
+   *          das Feld was zur Tabelle hinzugefÃ¼gt wird.
    */
   void addField(Field f);
+
+  /**
+   * Gibt ein Feld mit diesem Namen zurÃ¼ck.
+   *
+   * @param fieldName
+   *          der Name von dem Feld welches zruÃ¼ckgegeben werden soll
+   * @return Das Feld
+   */
+  Optional<Field> getField(String fieldName);
 
   /**
    * getter cateogory.
@@ -68,4 +108,12 @@ public interface Table extends Node {
    *          neue category
    */
   void setCategory(String category);
+
+  /**
+   * lÃ¶scht ein Feld aus der Tabelle.
+   *
+   * @param fieldName
+   *          das zu lÃ¶schende Feld
+   */
+  void deleteField(String fieldName);
 }

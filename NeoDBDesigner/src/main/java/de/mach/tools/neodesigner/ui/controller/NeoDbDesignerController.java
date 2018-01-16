@@ -1,27 +1,58 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.ui.controller;
 
 import de.mach.tools.neodesigner.core.LoadFromDbTask;
 import de.mach.tools.neodesigner.core.Model;
 import de.mach.tools.neodesigner.core.ModelImpl;
+import de.mach.tools.neodesigner.core.Util;
+import de.mach.tools.neodesigner.core.category.CategoryTranslator;
 import de.mach.tools.neodesigner.core.datamodel.Table;
 import de.mach.tools.neodesigner.core.nimport.ImportTask;
-import de.mach.tools.neodesigner.database.DatabaseConnectorImpl;
+import de.mach.tools.neodesigner.database.cypher.DatabaseConnectorImpl;
+import de.mach.tools.neodesigner.ui.DbTableTabStarter;
+import de.mach.tools.neodesigner.ui.GuiUtil;
 import de.mach.tools.neodesigner.ui.SaveHandler;
 import de.mach.tools.neodesigner.ui.Strings;
 import de.mach.tools.neodesigner.ui.TreeViewObserver;
+import de.mach.tools.neodesigner.ui.graph.DisplayGraph;
 
 import java.io.File;
 import java.net.URL;
+import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javafx.application.HostServices;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.ProgressBar;
@@ -30,15 +61,21 @@ import javafx.scene.control.TabPane;
 import javafx.scene.control.TabPane.TabClosingPolicy;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
+import org.controlsfx.control.Notifications;
 
 /**
  * GUI der Anwendung mit Treeview aller Tabellen, Suchfunktion, Login in die DB
- * und Tab Register für detailierte Anzeige von Tabellen.
+ * und Tab Register fÃ¼r detailierte Anzeige von Tabellen.
  *
  * @author Chris Deter
  *
@@ -48,7 +85,10 @@ public class NeoDbDesignerController implements Initializable {
   private Model ndbm;
   private TreeViewObserver tvo;
   private SaveHandler saveHandler;
+  private boolean refreshAccess = true;
   private static final Logger LOG = Logger.getLogger(NeoDbDesignerController.class.getName());
+  private HostServices hostServices = null;
+  private boolean eventHandlerSet = false;
 
   @FXML
   private VBox vboxView;
@@ -101,12 +141,53 @@ public class NeoDbDesignerController implements Initializable {
   @FXML
   private void connectToDb(final ActionEvent event) {
     if (!ndbm.isOnline()) {
+      buttonDbConnect.setDisable(true);
       connectDb();
-      menuDatabase.setDisable(false);
+      connectEventHandler();
     } else {
       menuDatabase.setDisable(true);
       disconnectDb();
     }
+  }
+
+  private void connectEventHandler() {
+    if (!eventHandlerSet) {
+      // F5
+      searchText.getScene().setOnKeyPressed(keyEvent -> {
+        if (keyEvent.getCode() == KeyCode.F5) {
+          refreshData();
+          keyEvent.consume();
+        }
+      });
+      searchText.getScene().addEventHandler(KeyEvent.KEY_RELEASED, event -> processKeyComb(event));
+      eventHandlerSet = true;
+    }
+  }
+
+  private void processKeyComb(final KeyEvent event) {
+    final KeyCodeCombination keyComb1 = new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN);
+    final KeyCodeCombination keyComb2 = new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN);
+    final KeyCodeCombination keyComb3 = new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN);
+    final KeyCodeCombination keyComb4 = new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN);
+    if (keyComb1.match(event)) {
+      GuiUtil.repeatFocus(searchText);
+    }
+    if (keyComb2.match(event)) {
+      exportPdfToFile(null);
+    }
+    if (keyComb3.match(event)) {
+      final Object i = tableView.getSelectionModel().getSelectedItem().getUserData();
+      if (i != null && i instanceof TableViewController) {
+        ((TableViewController) i).createNew();
+      }
+    }
+    if (keyComb4.match(event)) {
+      final Object i = tableView.getSelectionModel().getSelectedItem().getUserData();
+      if (i != null && i instanceof TableViewController) {
+        ((TableViewController) i).save();
+      }
+    }
+    event.consume();
   }
 
   @FXML
@@ -123,20 +204,25 @@ public class NeoDbDesignerController implements Initializable {
   }
 
   @FXML
+  private void editCategory(final ActionEvent event) {
+    openCategoryEditor();
+  }
+
+  @FXML
   private void startNeo(final ActionEvent event) {
     if (!ndbm.isNeoServerStarterFileKnown()) {
       final DirectoryChooser folderChooser = new DirectoryChooser();
       folderChooser.setTitle(Strings.TITLE_FINDNEO4JFOLDER);
-      ndbm.setNewNeoServerFolder(folderChooser.showDialog(treeView.getScene().getWindow()));
+      ndbm.setNewNeoServerFolder(folderChooser.showDialog(tableView.getScene().getWindow()));
     }
     if (!ndbm.startNeoServer()) {
-      NeoDbDesignerController.popupError(Strings.ALTITLE_FILEERR, Strings.ALTEXT_FILEERR, "");
+      NeoDbDesignerController.popupError(Strings.ALTITLE_FILEERR, Strings.ALTEXT_FILEERR, Strings.EMPTYSTRING);
     }
   }
 
   @FXML
   private void openAbout(final ActionEvent event) {
-    NeoDbDesignerController.popupInfo(Strings.SOFTWARENAME, Strings.SOFTWAREAUTHOR, Strings.VERSION,
+    NeoDbDesignerController.popupInfo(Strings.SOFTWARENAME, Strings.SOFTWAREINFO, Strings.VERSION,
         AlertType.INFORMATION);
   }
 
@@ -146,46 +232,118 @@ public class NeoDbDesignerController implements Initializable {
   }
 
   @FXML
+  private void stats(final ActionEvent event) {
+    if (ndbm.isOnline()) {
+      final String title = Strings.ALTITLEDBINFO;
+      final StringBuilder str = new StringBuilder(Strings.ALLNODES);
+      for (final Entry<String, Integer> info : ndbm.getDatabaseStats().entrySet()) {
+        str.append(info.getKey() + Strings.SPACERFORINFO + info.getValue().toString() + Strings.EOL);
+      }
+      NeoDbDesignerController.popupInfo(title, title, str.toString(), AlertType.INFORMATION);
+    }
+  }
+
+  @FXML
   private void importKategoryFromFile(final ActionEvent event) {
-    importFileChooserDialog(Strings.TITLE_IMPORTKATEGORIE, false);
+    importFileChooserDialog(Strings.TITLE_IMPORTKATEGORIE, false, ndbm.getPathImportCat());
   }
 
   @FXML
   private void importSqlFromFile(final ActionEvent event) {
-    importFileChooserDialog(Strings.TITLE_IMPORTSQL, true);
+    importFileChooserDialog(Strings.TITLE_IMPORTSQL, true, ndbm.getPathImportSql());
   }
 
   /**
-   * Dialog um den CSV oder SQL Import zu starten
-   * 
+   * Dialog um den CSV oder SQL Import zu starten.
+   *
    * @param title
+   *          der Titel
    * @param isSql
-   *          True für SQL import, sonst False
+   *          True fÃ¼r SQL import, sonst False
    */
-  private void importFileChooserDialog(final String title, final boolean isSql) {
+  private void importFileChooserDialog(final String title, final boolean isSql, final String path) {
     final FileChooser fileChooser = new FileChooser();
     fileChooser.setTitle(title);
-    final File file = fileChooser.showOpenDialog(treeView.getScene().getWindow());
-    if (isSql) {
-      importTask(ndbm.importTask(file, 's'), progressStatus, labelStatus);
-    } else {
-      importTask(ndbm.importTask(file, 'c'), progressStatus, labelStatus);
+    fileChooser.setInitialDirectory(Util.getFile(path));
+    final File file = fileChooser.showOpenDialog(tableView.getScene().getWindow());
+    if (file != null) {
+      if (isSql) {
+        deleteDbBeforeImport();
+        importTask(ndbm.importTask(file, Strings.TYPE_SQL), progressStatus, labelStatus);
+      } else {
+        importTask(ndbm.importTask(file, Strings.TYPE_CSV), progressStatus, labelStatus);
+      }
+      clearTableview();
     }
+  }
+
+  /**
+   * LÃ¶scht die Datenbank vor dem Import, wenn der Nutzer dies wÃ¼nscht.
+   */
+  private void deleteDbBeforeImport() {
+    if (!ndbm.getAllTables().isEmpty()) {
+      final Alert alert = new Alert(AlertType.CONFIRMATION);
+      alert.setTitle(Strings.ALTITLE_DATABASENOTEMPTY);
+      alert.setHeaderText(Strings.ALTEXT_DATABASEERR_NOTEMPTY);
+      alert.setContentText(Strings.ALTEXT_CLEANDATABASE);
+
+      final Optional<ButtonType> result = alert.showAndWait();
+      if (result.isPresent() && result.get() == ButtonType.OK) {
+        ndbm.deleteDatabase();
+      }
+    }
+  }
+
+  @FXML
+  private void importCsvFromFiles(final ActionEvent event) {
+    final DirectoryChooser folderChooser = new DirectoryChooser();
+    folderChooser.setTitle(Strings.TITLE_EXPORTCSV);
+    folderChooser.setInitialDirectory(Util.getFile(ndbm.getPathImportCsv()));
+    final File folder = folderChooser.showDialog(tableView.getScene().getWindow());
+    if (folder != null) {
+      deleteDbBeforeImport();
+      importTask(ndbm.importFolderTask(folder), progressStatus, labelStatus);
+    }
+  }
+
+  @FXML
+  private void exportCqlToFile(final ActionEvent event) {
+    final File file = getFileChooser(Strings.TITLE_EXPORTCQL, Strings.EXPORTCQLDEFAULT, ndbm.getPathExportCql());
+    exportResult(ndbm.writeExportFile(file, Strings.TYPE_CQL));
   }
 
   @FXML
   private void exportSqlToFile(final ActionEvent event) {
-    final File file = getFileChooser(Strings.TITLE_IMPORTSQL, Strings.EXPORTSQLDEFAULT);
-    if (!ndbm.writeExportFile(file, 's')) {
-      NeoDbDesignerController.popupError(Strings.ALTITLE_EXPORTERR, Strings.ALTEXT_EXPORTERR, "");
-    }
+    final File file = getFileChooser(Strings.TITLE_EXPORTSQL, Strings.EXPORTSQLDEFAULT, ndbm.getPathExportSql());
+    exportResult(ndbm.writeExportFile(file, Strings.TYPE_SQL));
   }
 
   @FXML
-  private void exportCsvToFile(final ActionEvent event) {
-    final File file = getFileChooser(Strings.TITLE_EXPORTCSV, Strings.EXPORTCSVDEFAULT);
-    if (!ndbm.writeExportFile(file, 's')) {
-      NeoDbDesignerController.popupError(Strings.ALTITLE_EXPORTERR, Strings.ALTEXT_EXPORTERR, "");
+  private void exportPdfToFile(final ActionEvent event) {
+    ModelPrinterController.startPdfCreator(ndbm.getAllTables(), tableView.getScene().getWindow(), ndbm.getPdfConfig(),
+        hostServices);
+  }
+
+  @FXML
+  private void exportCsvToolchainToFile(final ActionEvent event) {
+    final DirectoryChooser folderChooser = new DirectoryChooser();
+    folderChooser.setTitle(Strings.TITLE_EXPORTCSV);
+    folderChooser.setInitialDirectory(Util.getFile(ndbm.getPathExportCsv()));
+    final File file = folderChooser.showDialog(tableView.getScene().getWindow());
+    exportResult(ndbm.writeToolchainReport(file));
+  }
+
+  /**
+   * managt die Benachrichtigung an den User Ã¼ber den Ausgang des Exportes.
+   *
+   * @param b
+   *          true wenn erfolgreich, sonst false
+   */
+  private void exportResult(final boolean b) {
+    if (!b) {
+      NeoDbDesignerController.popupError(Strings.ALTITLE_EXPORTERR, Strings.ALTEXT_EXPORTERR, Strings.EMPTYSTRING);
+    } else {
+      notification(Strings.SOFTWARENAME, Strings.NOTIFICATION_EXPORT);
     }
   }
 
@@ -196,13 +354,14 @@ public class NeoDbDesignerController implements Initializable {
    *          Titel des Fensters
    * @param initialName
    *          Intialer Dateiname
-   * @return die Datei die ausgewählt wurde
+   * @return die Datei die ausgewÃ¤hlt wurde
    */
-  private File getFileChooser(final String title, final String initialName) {
+  private File getFileChooser(final String title, final String initialName, final String path) {
     final FileChooser fileChooser = new FileChooser();
     fileChooser.setTitle(title);
     fileChooser.setInitialFileName(initialName);
-    return fileChooser.showSaveDialog(treeView.getScene().getWindow());
+    fileChooser.setInitialDirectory(Util.getFile(path));
+    return fileChooser.showSaveDialog(tableView.getScene().getWindow());
   }
 
   @FXML
@@ -214,13 +373,30 @@ public class NeoDbDesignerController implements Initializable {
     }
   }
 
+  @FXML
+  private void showDatamodel(final ActionEvent event) {
+    final DisplayGraph dg = new DisplayGraph();
+    dg.showCompleteDatamodel(tableView.getScene().getWindow(), ndbm);
+  }
+
+  @FXML
+  private void showCategory(final ActionEvent event) {
+    final TextInputDialog dialog = new TextInputDialog(Strings.DEFAULT_CATEGORY);
+    dialog.setTitle(Strings.TITLE_DISPLAYCATGRAPH);
+    dialog.setHeaderText(Strings.ALTITLE_DISPLAYCATGRAPH);
+    dialog.setContentText(Strings.ALTEXT_DISPLAYCATGRAPH);
+    final DisplayGraph dg = new DisplayGraph();
+    final Optional<String> result = dialog.showAndWait();
+    result.ifPresent(category -> dg.showCategory(tableView.getScene().getWindow(), ndbm, category));
+  }
+
   /**
    * Bereitet GUI beim ersten Start auf die Nutzung vor. Initialisiert das Model
-   * und setzt den Observer für den TreeView
+   * und setzt den Observer fÃ¼r den TreeView
    */
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {
-    ndbm = new ModelImpl(new DatabaseConnectorImpl());
+    ndbm = new ModelImpl(new DatabaseConnectorImpl(), new CategoryTranslator());
     saveHandler = new SaveHandler(ndbm.getSaveObj());
     dbDatabase.setText(ndbm.getAddrOfDb());
     dbUser.setText(ndbm.getUser());
@@ -228,15 +404,16 @@ public class NeoDbDesignerController implements Initializable {
     treeView.setRoot(new TreeItem<>(Strings.NAME_TABLES));
     tableView.setTabClosingPolicy(TabClosingPolicy.ALL_TABS);
     tvo = new TreeViewObserver(this, treeView, searchText, ndbm);
-
+    treeView.setFocusTraversable(false);
   }
 
   /**
-   * Läd die Daten erneut aus der Datenbank.
+   * LÃ¤d die Daten erneut aus der Datenbank.
    */
   private void refreshData() {
     if (ndbm.isOnline()) {
       loadDataFromDb(progressStatus);
+      clearTableview();
     }
   }
 
@@ -252,7 +429,9 @@ public class NeoDbDesignerController implements Initializable {
       dbStatus.setText(Strings.DBSTATUS_ONLINE);
       buttonDbConnect.setText(Strings.DBBUTTON_DISCONNECT);
     } else {
-      NeoDbDesignerController.popupError(Strings.ALTITLE_DATABASEERR, Strings.ALTEXT_DATABASEERR_CONNECT, "");
+      NeoDbDesignerController.popupError(Strings.ALTITLE_DATABASEERR, Strings.ALTEXT_DATABASEERR_CONNECT,
+          Strings.DETAILDATABASEERR);
+      buttonDbConnect.setDisable(false);
     }
   }
 
@@ -264,6 +443,7 @@ public class NeoDbDesignerController implements Initializable {
     dbStatus.setText(Strings.DBSTATUS_OFFLINE);
     buttonDbConnect.setText(Strings.DBBUTTON_CONNECT);
     treeView.getRoot().getChildren().clear();
+    buttonDbConnect.setDisable(false);
   }
 
   /**
@@ -304,44 +484,64 @@ public class NeoDbDesignerController implements Initializable {
   }
 
   /**
-   * Startet den Task, der die Daten aus der Datenbank läd.
+   * Startet den Task, der die Daten aus der Datenbank lÃ¤d.
    *
    * @param progressStatus
-   *          die Statusbar die Verändert werden soll
+   *          die Statusbar die VerÃ¤ndert werden soll
    * @param labelStatus
-   *          das Label auf dem die Änderungen textuell dargestellt werden
+   *          das Label auf dem die Ã„nderungen textuell dargestellt werden
    */
   private void loadDataFromDb(final ProgressBar progressStatus) {
-    tvo.loadAutoComplete();
-    final LoadFromDbTask task = ndbm.loadFrmDbTask();
-    progressStatus.progressProperty().bind(task.progressProperty());
-    task.setOnSucceeded(t -> {
-      progressStatus.progressProperty().unbind();
-      progressStatus.progressProperty().set(0);
-    });
-    task.setOnFailed(t -> {
-      NeoDbDesignerController.popupError(Strings.ALTITLE_DATABASEERR, Strings.ALTEXT_DATABASEERR_UNEX_INPUT,
-          task.getException().getMessage());
-      NeoDbDesignerController.LOG.log(Level.SEVERE, task.getException().getMessage(), task.getException());
-    });
-    new Thread(task).start();
+    if (refreshAccess) {
+      refreshAccess = false;
+      tvo.loadAutoComplete();
+      tvo.loadTreeView();
+
+      final LoadFromDbTask task = ndbm.loadFromDbTask(new DatabaseConnectorImpl());
+      progressStatus.progressProperty().bind(task.progressProperty());
+      task.setOnSucceeded(t -> {
+        progressStatus.progressProperty().unbind();
+        progressStatus.progressProperty().set(0);
+        try {
+          ndbm.addTableList(task.get());
+        } catch (final Exception e) {
+          NeoDbDesignerController.LOG.log(Level.SEVERE, e.getMessage(), e);
+        }
+        menuDatabase.setDisable(false);
+        buttonDbConnect.setDisable(false);
+        refreshAccess = true;
+      });
+      task.setOnFailed(t -> {
+        NeoDbDesignerController.popupError(Strings.ALTITLE_DATABASEERR, Strings.ALTEXT_DATABASEERR_UNEX_INPUT,
+            task.getException().getMessage());
+        NeoDbDesignerController.LOG.log(Level.SEVERE, task.getException().getMessage(), task.getException());
+        refreshAccess = true;
+        buttonDbConnect.setDisable(false);
+      });
+      new Thread(task).start();
+    } else {
+      NeoDbDesignerController.LOG.log(Level.WARNING, Strings.LOG_WARNINGLOADDBMORETHANONCE);
+    }
   }
 
   /**
-   * Startet den Task zum Import (je nach übergebenen Import Task).
+   * Startet den Task zum Import (je nach Ã¼bergebenen Import Task).
    *
    * @param task
-   *          Der Task für den Import
+   *          Der Task fÃ¼r den Import
    * @param progressStatus
-   *          die Statusbar die Verändert werden soll
+   *          die Statusbar die VerÃ¤ndert werden soll
    * @param labelStatus
-   *          das Label auf dem die Änderungen textuell dargestellt werden
+   *          das Label auf dem die Ã„nderungen textuell dargestellt werden
    */
   private void importTask(final ImportTask task, final ProgressBar progressStatus, final Label labelStatus) {
     if (task != null) {
       progressStatus.progressProperty().bind(task.progressProperty());
       labelStatus.textProperty().bind(task.messageProperty());
-      task.setOnSucceeded(t -> connectDb());
+      task.setOnSucceeded(t -> {
+        connectDb();
+        notification(Strings.SOFTWARENAME, Strings.NOTIFICATION_IMPORT);
+      });
       task.setOnFailed(t -> {
         NeoDbDesignerController.popupError(Strings.ALTITLE_DATABASEERR, Strings.ALTEXT_DATABASEERR_UNEX_ERR,
             task.getException().getMessage());
@@ -355,8 +555,12 @@ public class NeoDbDesignerController implements Initializable {
     }
   }
 
+  private void notification(final String title, final String text) {
+    Notifications.create().title(title).text(text).showInformation();
+  }
+
   /**
-   * Öffnet ein neues Tab mit einer Tabelle aus der Datenbank.
+   * Ã–ffnet ein neues Tab mit einer Tabelle aus der Datenbank.
    *
    * @param tableName
    *          Name der Tabelle
@@ -364,19 +568,19 @@ public class NeoDbDesignerController implements Initializable {
   public void openTabWithTable(final String tableName) {
     final boolean foundTab = tryToOpenExistingTab(tableName);
     if (!foundTab && ndbm.isOnline() && tableName.trim().length() > 0) {
-      final Table t = ndbm.getTable(tableName);
-      if (t != null) {
-        createNewTableController(t, false);
+      final Optional<Table> t = ndbm.getTable(tableName);
+      if (t.isPresent()) {
+        createNewTableController(t.get(), false);
       }
     }
   }
 
   /**
-   * Öffnet ein bestehendes Tab mit der Tabelle oder gibt False zurück.
+   * Ã–ffnet ein bestehendes Tab mit der Tabelle oder gibt False zurÃ¼ck.
    *
    * @param tableName
    *          Name der Tabelle
-   * @return ob das Tab vorhanden war und ausgewählt wurde
+   * @return ob das Tab vorhanden war und ausgewÃ¤hlt wurde
    */
   private boolean tryToOpenExistingTab(final String tableName) {
     boolean foundTab = false;
@@ -390,20 +594,41 @@ public class NeoDbDesignerController implements Initializable {
   }
 
   /**
-   * Erstellt den Controller für die anzuzeigene Tabelle und setzt die
+   * Erstellt den Controller fÃ¼r die anzuzeigene Tabelle und setzt die
    * Speicherevents.
    *
    * @param t
    *          Tabelle
    * @param newCreated
-   *          True bedeutet, dass die Tabelle neu erstellt wurde und noch nicht
-   *          in der Datenbank existiert
+   *          True bedeutet, dass die Tabelle neu erstellt wurde und noch nicht in
+   *          der Datenbank existiert
    */
   private void createNewTableController(final Table t, final boolean newCreated) {
-    final DbTableTabController dbtv = new DbTableTabController(tableView, treeView.getScene().getWindow(), t, ndbm,
-        newCreated);
-    dbtv.getSaveButton().setOnAction(e -> saveHandler.saveHandlerForTab(dbtv, ndbm.getWordLength()));
+    final DbTableTabStarter dbtv = new DbTableTabStarter(tableView, t, ndbm, newCreated);
+    dbtv.getSaveButton().setOnAction(e -> saveHandler.saveHandlerForTab(dbtv, ndbm.getValidator()));
     dbtv.getDeleteButton().setOnAction(e -> saveHandler.deleteHandlerForTab(dbtv.getTable(), dbtv));
     tableView.getSelectionModel().selectLast();
+  }
+
+  private void openCategoryEditor() {
+    final String catEditorName = Strings.TABCATEGORY;
+    if (!tryToOpenExistingTab(catEditorName)) {
+      final Tab tab = new Tab();
+      tab.setClosable(true);
+      tab.setText(catEditorName);
+      tableView.getTabs().add(tab);
+      tableView.getSelectionModel().select(tab);
+      new CategoryEditorController(ndbm).generateContent(tab);
+    }
+  }
+
+  public void setHostServices(final HostServices hs) {
+    hostServices = hs;
+  }
+
+  private void clearTableview() {
+    final Tab t = tableView.getTabs().get(0);
+    tableView.getTabs().clear();
+    tableView.getTabs().add(t);
   }
 }

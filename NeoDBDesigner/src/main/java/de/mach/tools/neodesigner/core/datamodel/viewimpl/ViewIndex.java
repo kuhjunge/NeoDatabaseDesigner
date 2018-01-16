@@ -1,10 +1,34 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.core.datamodel.viewimpl;
 
 import de.mach.tools.neodesigner.core.datamodel.Field;
+import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
 import de.mach.tools.neodesigner.core.datamodel.Index;
 import de.mach.tools.neodesigner.core.datamodel.impl.IndexImpl;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -12,17 +36,16 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 /**
- * Implementation von Index für den View.
+ * Implementation von Index fÃ¼r den View.
  *
  * @author Chris Deter
  *
  */
-public class ViewIndex extends ViewNodeImpl implements Index {
+public class ViewIndex extends ViewNodeImpl<Index> implements Index {
   private final BooleanProperty unique = new SimpleBooleanProperty(false);
-  protected final StringProperty fieldListAsString = new SimpleStringProperty();
+  private final StringProperty fieldListAsString = new SimpleStringProperty();
   private boolean modifiedUnique = false;
-  protected boolean modifiedDatafields = false;
-  private final Index data;
+  private boolean modifiedDatafields = false;
 
   /**
    * Konstruktor.
@@ -34,23 +57,6 @@ public class ViewIndex extends ViewNodeImpl implements Index {
    */
   public ViewIndex(final String name, final ViewTable nodeOf) {
     super(new IndexImpl(name, nodeOf));
-    data = (Index) super.getNode();
-    indexPrepWork();
-  }
-
-  /**
-   * Konstruktor für die abgeleiteten Klassen (Fremdschlüssel). Übernimmt im
-   * gegensatz der anderen Konstruktoren den Index Schlüssel und keine Kopie von
-   * ihm.
-   *
-   * @param i
-   *          Index zum kopieren
-   */
-  ViewIndex(final Index i) {
-    super(i);
-    data = (Index) super.getNode();
-    setUnique(i.isUnique());
-    unique.addListener((obs, oldValue, newValue) -> modifyUnique());
     indexPrepWork();
   }
 
@@ -64,47 +70,48 @@ public class ViewIndex extends ViewNodeImpl implements Index {
    */
   public ViewIndex(final Index i, final ViewTable nodeOf) {
     super(new IndexImpl(i.getName(), i.getType(), nodeOf));
-    data = (Index) super.getNode();
     for (final Field f : i.getFieldList()) {
-      data.addField(nodeOf.dataFields.get(nodeOf.dataFields.indexOf(f)));
+      getNode().addField(nodeOf.getDataFieldsRaw().get(nodeOf.getDataFieldsRaw().indexOf(f)));
+
     }
     setUnique(i.isUnique());
     unique.addListener((obs, oldValue, newValue) -> modifyUnique());
-    for (final Field f : data.getFieldList()) {
-      data.setAltName(f.getName(), i.getAltName(f.getName()));
+    for (final Field f : getNode().getFieldList()) {
+      getNode().setAltName(f.getName(), i.getAltName(f.getName()));
     }
     nameProperty().addListener((obs, oldValue, newValue) -> modifyName());
     indexPrepWork();
   }
 
   /**
-   * Initialisieren von der Feldliste des Indexes
+   * Initialisieren von der Feldliste des Indexes.
    */
   private void indexPrepWork() {
-    fieldListAsString.set(data.getFieldList().toString());
+    fieldListAsString.set(getNode().getFieldList().toString());
   }
 
   /**
-   * wird aufgerufen wenn die Feldliste des Indexes verändert wurde
+   * wird aufgerufen wenn die Feldliste des Indexes verÃ¤ndert wurde.
    */
-  protected void modifiedFieldList() {
-    fieldListAsString.set(data.getFieldList().toString());
+  private void modifiedFieldList() {
+    fieldListAsString.set(getNode().getFieldList().toString());
     modifiedDatafields = true;
+    setModified();
   }
 
   /**
-   * View Methode um zu erkennen ob die Eigenschaft verändert wurde.
+   * View Methode um zu erkennen ob die Eigenschaft verÃ¤ndert wurde.
    *
-   * @return True wenn eine Änderung aufgetreten ist
+   * @return True wenn eine Ã„nderung aufgetreten ist
    */
   public boolean isModifiedUnique() {
     return modifiedUnique;
   }
 
   /**
-   * View Methode um zu erkennen ob die Eigenschaft verändert wurde.
+   * View Methode um zu erkennen ob die Eigenschaft verÃ¤ndert wurde.
    *
-   * @return True wenn eine Änderung aufgetreten ist
+   * @return True wenn eine Ã„nderung aufgetreten ist
    */
   public boolean isModifiedDatafields() {
     return modifiedDatafields;
@@ -118,45 +125,62 @@ public class ViewIndex extends ViewNodeImpl implements Index {
   }
 
   /**
-   * wird aufgerufen wenn der Name des Indexes verändert wurde, syncronisiert
-   * die Werte mit dem internen Index Objekt.
+   * wird aufgerufen wenn der Name des Indexes verÃ¤ndert wurde, syncronisiert die
+   * Werte mit dem internen Index Objekt.
    */
   private void modifyName() {
-    if (data.isUnique() != unique.get()) {
-      unique.set(data.isUnique());
+    if (getNode().isUnique() != unique.get()) {
+      unique.set(getNode().isUnique());
     }
   }
 
   /**
-   * Wird aufgerufen, wenn die Unique Eigenschaft verändert wird. Syncronisiert
-   * die Änderung mit dem internen Index Model
+   * Wird aufgerufen, wenn die Unique Eigenschaft verÃ¤ndert wird. Syncronisiert
+   * die Ã„nderung mit dem internen Index Model
    */
   private void modifyUnique() {
     // Modify muss neu gespeichert werden
     modifiedUnique = true;
-    // In den Daten muss das Unique übereinstimmen
-    if (data.isUnique() != unique.get()) {
-      data.setUnique(unique.get());
-      // den Namen anpassen bei geänderten Unique
-      setName(data.getName());
-      if (data.isUnique() != unique.get()) {
-        unique.set(data.isUnique());
+    setModified();
+    // In den Daten muss das Unique Ã¼bereinstimmen
+    if (getNode().isUnique() != unique.get()) {
+      getNode().setUnique(unique.get());
+      // den Namen anpassen bei geÃ¤nderten Unique
+      setName(getNode().getName());
+      if (getNode().isUnique() != unique.get()) {
+        unique.set(getNode().isUnique());
       }
     }
   }
 
   /**
-   * Property für die Anzeige in der GUI
-   * 
+   * Property fÃ¼r die Anzeige in der GUI.
+   *
    * @return BooleanProperty unique
    */
   public BooleanProperty uniqueProperty() {
     return unique;
   }
 
+  /**
+   * Funktion zum Herausfinden ob dieser Index einem FK zugeordnet ist.
+   *
+   * @return true wenn ein fk existiert
+   */
+  public boolean hasFk() {
+    if (getType().equals(Index.Type.XIF)) {
+      final List<ForeignKey> lfk = getTable().getForeignKeys().stream().filter(l -> l.getIndex().equals(this))
+          .collect(Collectors.toList());
+      if (!lfk.isEmpty()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @Override
   public boolean isUnique() {
-    return data.isUnique();
+    return getNode().isUnique();
   }
 
   @Override
@@ -170,57 +194,62 @@ public class ViewIndex extends ViewNodeImpl implements Index {
 
   @Override
   public Type getType() {
-    return data.getType();
+    return getNode().getType();
   }
 
   @Override
   public void setType(final Type s) {
-    data.setType(s);
-    unique.set(data.isUnique());
+    getNode().setType(s);
+    unique.set(getNode().isUnique());
   }
 
   @Override
   public List<Field> getFieldList() {
-    return data.getFieldList();
+    return getNode().getFieldList();
   }
 
   @Override
   public void addField(final Field f) {
-    data.addField(f, "");
+    getNode().addField(f, "");
     modifiedFieldList();
   }
 
   @Override
   public void addField(final Field f, final String altName) {
-    data.addField(f, altName);
+    getNode().addField(f, altName);
     modifiedFieldList();
   }
 
   @Override
   public void removeField(final int i) {
-    data.removeField(i);
+    getNode().removeField(i);
     modifiedFieldList();
   }
 
   @Override
   public void clearFieldList() {
-    data.clearFieldList();
+    getNode().clearFieldList();
     modifiedFieldList();
   }
 
   @Override
   public void setAltName(final String name, final String altName) {
-    data.setAltName(name, altName);
+    getNode().setAltName(name, altName);
   }
 
   @Override
   public String getAltName(final String name) {
-    return data.getAltName(name);
+    return getNode().getAltName(name);
   }
 
   @Override
-  public String getOrder(final String name) {
-    return data.getOrder(name);
+  public String getNameFromAltName(final String name) {
+    return getNode().getNameFromAltName(name);
+  }
+
+  @Override
+  public Integer getOrder(final String name) {
+    return getNode().getOrder(name);
   }
 
   @Override
@@ -235,5 +264,16 @@ public class ViewIndex extends ViewNodeImpl implements Index {
   @Override
   public int hashCode() {
     return getName().hashCode();
+  }
+
+  @Override
+  public void replaceField(final Field field, final String oldFieldName) {
+    getNode().replaceField(field, oldFieldName);
+    modifiedFieldList();
+  }
+
+  @Override
+  public void setOrder(final String name, final int order) {
+    getNode().setOrder(name, order);
   }
 }

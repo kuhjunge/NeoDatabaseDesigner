@@ -1,4 +1,4 @@
-// Generated from SQL.g4 by ANTLR 4.6
+// Generated from SQL.g4 by ANTLR 4.7
 package de.mach.tools.neodesigner.core.nimport.antlrsql;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -132,6 +132,18 @@ public interface SQLListener extends ParseTreeListener {
 	 */
 	void exitIsNotNull(SQLParser.IsNotNullContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code creCategory}
+	 * labeled alternative in {@link SQLParser#catComment}.
+	 * @param ctx the parse tree
+	 */
+	void enterCreCategory(SQLParser.CreCategoryContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code creCategory}
+	 * labeled alternative in {@link SQLParser#catComment}.
+	 * @param ctx the parse tree
+	 */
+	void exitCreCategory(SQLParser.CreCategoryContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link SQLParser#tablename}.
 	 * @param ctx the parse tree
 	 */
@@ -161,6 +173,16 @@ public interface SQLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitIndexname(SQLParser.IndexnameContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link SQLParser#name}.
+	 * @param ctx the parse tree
+	 */
+	void enterName(SQLParser.NameContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link SQLParser#name}.
+	 * @param ctx the parse tree
+	 */
+	void exitName(SQLParser.NameContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link SQLParser#type}.
 	 * @param ctx the parse tree

@@ -11,6 +11,7 @@ parse:
 	| createUniqueIndex
 	| primKey
 	| foreignKey
+	| catComment
 ;
 
 // SQL Statements
@@ -48,9 +49,13 @@ isNull: 'NULL'
 isNotNull: 'NOT NULL'
 ;
 
+catComment: SINGLE_LINE_COMMENT #creCategory
+;
+
 tablename : ID (ID | INT)+;
 fieldname : ID (ID | INT)+;
 indexname : ID (ID | INT)+;
+name : (ID | INT | SPECIAL)+;
 
 type	  :   'INTEGER'
 			| 'NUMBER(' INT ',' INT ')'
@@ -63,7 +68,8 @@ type	  :   'INTEGER'
 			| 'CLOB'
 			;
 // Lexer Rules
-SINGLE_LINE_COMMENT : '--' ~[\r\n]* -> skip; // toss out comments           
+SINGLE_LINE_COMMENT : '--' ~[\r\n]*; // toss out comments     
 ID  :   [a-zA-Z_-] ;      // match identifiers
 INT :   [0-9]+ ;         // match integers
+SPECIAL: [,];
 WS  :   [ \t\r\n]+ -> skip ; // toss out whitespace

@@ -1,4 +1,4 @@
-// Generated from SQL.g4 by ANTLR 4.6
+// Generated from SQL.g4 by ANTLR 4.7
 package de.mach.tools.neodesigner.core.nimport.antlrsql;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
@@ -84,6 +84,13 @@ public interface SQLVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitIsNotNull(SQLParser.IsNotNullContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code creCategory}
+	 * labeled alternative in {@link SQLParser#catComment}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCreCategory(SQLParser.CreCategoryContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link SQLParser#tablename}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -101,6 +108,12 @@ public interface SQLVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitIndexname(SQLParser.IndexnameContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link SQLParser#name}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitName(SQLParser.NameContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link SQLParser#type}.
 	 * @param ctx the parse tree

@@ -1,32 +1,68 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.core;
 
+import de.mach.tools.neodesigner.core.category.CategoryObj;
+import de.mach.tools.neodesigner.core.category.CategoryTranslator;
 import de.mach.tools.neodesigner.core.datamodel.Index;
 import de.mach.tools.neodesigner.core.datamodel.Table;
 import de.mach.tools.neodesigner.core.datamodel.impl.TableImpl;
-import de.mach.tools.neodesigner.core.nexport.CsvGenerator;
+import de.mach.tools.neodesigner.core.nexport.CsvForColsGenerator;
+import de.mach.tools.neodesigner.core.nexport.CsvForFkeysGenerator;
+import de.mach.tools.neodesigner.core.nexport.CsvForIdxsGenerator;
+import de.mach.tools.neodesigner.core.nexport.CsvForMetaGenerator;
+import de.mach.tools.neodesigner.core.nexport.CsvForPkeysGenerator;
+import de.mach.tools.neodesigner.core.nexport.CsvForTblsGenerator;
+import de.mach.tools.neodesigner.core.nexport.CypherGenerator;
 import de.mach.tools.neodesigner.core.nexport.Generator;
 import de.mach.tools.neodesigner.core.nexport.SqlGenerator;
+import de.mach.tools.neodesigner.core.nexport.pdf.LoadPdfConfiguration;
 import de.mach.tools.neodesigner.core.nimport.ImportCategoryTask;
+import de.mach.tools.neodesigner.core.nimport.ImportCsvTask;
 import de.mach.tools.neodesigner.core.nimport.ImportSqlTask;
 import de.mach.tools.neodesigner.core.nimport.ImportTask;
 import de.mach.tools.neodesigner.database.DatabaseConnection;
-import de.mach.tools.neodesigner.database.DatabaseConnector;
-import de.mach.tools.neodesigner.database.DatabaseConnectorImpl;
-import de.mach.tools.neodesigner.database.DatabaseManager;
+import de.mach.tools.neodesigner.database.cypher.DatabaseConnector;
+import de.mach.tools.neodesigner.database.cypher.DatabaseConnectorImpl;
+import de.mach.tools.neodesigner.database.cypher.DatabaseManager;
+import de.mach.tools.neodesigner.database.local.DataModelManager;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Observable;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
- * Implementation des Model Interfaces
+ * Implementation des Model Interfaces.
  *
  * @author Chris Deter
  *
@@ -35,17 +71,28 @@ public class ModelImpl implements Model {
   private final DatabaseConnection db;
   private final DataModelManager dmm;
   private final Configuration config;
+  private final CategoryTranslator ct;
+  private Validator val;
   private int lastNumber = 0;
   private static final Logger LOG = Logger.getLogger(ModelImpl.class.getName());
 
   /**
    * Konstruktor Model.
    */
-  public ModelImpl(final DatabaseConnector dc) {
-    db = new DatabaseManager(dc);
+  public ModelImpl(final DatabaseConnector dc, final CategoryTranslator ctrans) {
     dmm = new DataModelManager();
+    db = new DatabaseManager(dc);
     config = new Configuration();
     config.init();
+    ct = ctrans;
+  }
+
+  private DatabaseConnection getNewDatabaseConnection(final DatabaseConnector dbcon) {
+    return new DatabaseManager(dbcon, config.getAddrOfDb(), config.getUser(), config.getPw());
+  }
+
+  private DatabaseConnection getNewDatabaseConnection() {
+    return getNewDatabaseConnection(new DatabaseConnectorImpl());
   }
 
   @Override
@@ -64,6 +111,11 @@ public class ModelImpl implements Model {
   }
 
   @Override
+  public List<String> getAllCategories() {
+    return db.getListWithCategories();
+  }
+
+  @Override
   public void disconnectDb() {
     db.disconnectDb();
     dmm.clear();
@@ -73,15 +125,22 @@ public class ModelImpl implements Model {
   public boolean connectDb(final String dbadr, final String usr, final String pw) {
     if (db.connectDb(dbadr, usr, pw)) {
       config.save(dbadr, usr, pw);
+      ct.load(getAllCategories());
+      val = new Validator(config.getWordLength(), config.getWordLength(), config.getUniqueTableLength(), getSaveObj());
       return true;
     }
     return false;
   }
 
   @Override
-  public LoadFromDbTask loadFrmDbTask() {
+  public void addTableList(final List<Table> lt) {
     dmm.clear();
-    return new LoadFromDbTask(this);
+    dmm.addAll(lt);
+  }
+
+  @Override
+  public LoadFromDbTask loadFromDbTask(final DatabaseConnector dbcon) {
+    return new LoadFromDbTask(getNewDatabaseConnection(dbcon));
   }
 
   @Override
@@ -90,30 +149,32 @@ public class ModelImpl implements Model {
   }
 
   @Override
-  public Table getTable(final String name) {
-    if (dmm.hasTable(name)) {
-      return dmm.getTable(name);
-    } else {
-      return db.getTable(name);
-    }
+  public Optional<Table> getTable(final String tablename) {
+    return getTable(tablename, true);
   }
 
   @Override
-  public List<Table> getAllLocalTables() {
-    return dmm.getTables();
+  public synchronized Optional<Table> getTable(final String tablename, final boolean useLocalDb) {
+    Optional<Table> result;
+    if (dmm.hasTable(tablename) && useLocalDb) {
+      result = dmm.getTable(tablename);
+    } else {
+      result = db.getTable(tablename);
+    }
+    return result;
   }
 
   @Override
   public List<Table> getAllTables() {
-    if (dmm.isEmpty() && db.isOnline()) {
-      dmm.addAll(db.getAllTables());
+    if (dmm.isEmpty() && db.isReady()) {
+      dmm.addAll(db.getTables());
     }
     return dmm.getTables();
   }
 
   @Override
-  public boolean isOnline() {
-    return db.isOnline();
+  public synchronized boolean isOnline() {
+    return db.isReady();
   }
 
   @Override
@@ -165,9 +226,9 @@ public class ModelImpl implements Model {
   }
 
   /**
-   * gibt ein File Objekt der Neo4J Start Batch zurück.
+   * gibt ein File Objekt der Neo4J Start Batch zurÃ¼ck.
    *
-   * @return
+   * @return die Start Datei
    */
   private File getNeoServerStarterFile() {
     return new File(config.getNeoDbStarterLocation());
@@ -208,54 +269,127 @@ public class ModelImpl implements Model {
   }
 
   @Override
+  public String getPathImportSql() {
+    return config.getPathImportSql();
+  }
+
+  @Override
+  public String getPathImportCat() {
+    return config.getPathImportCat();
+  }
+
+  @Override
+  public String getPathImportCsv() {
+    return config.getPathImportCsv();
+  }
+
+  @Override
+  public String getPathExportSql() {
+    return config.getPathExportSql();
+  }
+
+  @Override
+  public String getPathExportCsv() {
+    return config.getPathExportCsv();
+  }
+
+  @Override
+  public String getPathExportCql() {
+    return config.getPathExportCql();
+  }
+
+  @Override
   public Boolean writeExportFile(final File f, final char type) {
-    if (f != null && db.isOnline()) {
+    if (f != null && db.isReady()) {
       Generator gen;
-      try (BufferedWriter writer = Files.newBufferedWriter(f.toPath())) {
-        if (type == 's') {
-          gen = new SqlGenerator();
-        } else {
-          gen = new CsvGenerator();
-        }
-        writer.write(gen.generate(getAllTables()));
-        return true;
-      } catch (final IOException e) {
-        ModelImpl.LOG.log(Level.SEVERE, e.toString(), e);
+      if (type == Strings.IMPORTTYPESQL) {
+        gen = new SqlGenerator();
+        config.setPathExportSql(f.getParent());
+      } else {
+        gen = new CypherGenerator();
+        config.setPathExportCql(f.getParent());
       }
+      writeFile(f, gen);
+      config.save();
+      return true;
+    }
+    return false;
+  }
+
+  private void writeFile(final File f, final Generator gen) {
+    try (BufferedWriter writer = Files.newBufferedWriter(f.toPath())) {
+      writer.write(gen.generate(getAllTables()));
+    } catch (final IOException e) {
+      ModelImpl.LOG.log(Level.SEVERE, e.toString(), e);
+    }
+  }
+
+  @Override
+  public boolean writeToolchainReport(final File f) {
+    if (f != null && db.isReady()) {
+      writeFile(new File(f.getPath() + File.separator + "Tbls.csv"), new CsvForTblsGenerator());
+      writeFile(new File(f.getPath() + File.separator + "cols.csv"), new CsvForColsGenerator());
+      writeFile(new File(f.getPath() + File.separator + "PKeys.csv"), new CsvForPkeysGenerator());
+      writeFile(new File(f.getPath() + File.separator + "Idxs.csv"), new CsvForIdxsGenerator());
+      writeFile(new File(f.getPath() + File.separator + "FKeys.csv"), new CsvForFkeysGenerator());
+      writeFile(new File(f.getPath() + File.separator + "Meta.csv"), new CsvForMetaGenerator());
+      config.setPathExportCsv(f.getParent());
+      config.save();
+      return true;
     }
     return false;
   }
 
   @Override
-  public ImportTask importTask(final File file, final char type) {
+  public ImportTask importFolderTask(final File f) {
+    final DatabaseConnection dc = getNewDatabaseConnection();
+    final String tbls = readFile(new File(f.getPath() + File.separator + "Tbls.csv"));
+    final String cols = readFile(new File(f.getPath() + File.separator + "cols.csv"));
+    final String pKeys = readFile(new File(f.getPath() + File.separator + "PKeys.csv"));
+    final String idxs = readFile(new File(f.getPath() + File.separator + "Idxs.csv"));
+    final String fKeys = readFile(new File(f.getPath() + File.separator + "FKeys.csv"));
+    final String meta = readFile(new File(f.getPath() + File.separator + "Meta.csv"));
+    config.setPathImportCsv(f.getParent());
+    config.save();
+    return new ImportCsvTask(dc, tbls, cols, idxs, pKeys, fKeys, meta);
+  }
+
+  /**
+   * Liest eine Datei ein.
+   *
+   * @param file
+   *          Name der Datei
+   * @return der Inhalt der Datei
+   */
+  private String readFile(final File file) {
     List<String> lines = new ArrayList<>();
-    if (file != null) {
+    if (file != null && file.exists()) {
       try {
         lines = Files.readAllLines(file.toPath());
       } catch (final IOException e) {
         ModelImpl.LOG.log(Level.SEVERE, e.toString(), e);
       }
     }
-    return importTask(lines, type,
-        new DatabaseManager(new DatabaseConnectorImpl(), config.getAddrOfDb(), config.getUser(), config.getPw()));
+    return lines.stream().map(Object::toString).collect(Collectors.joining(Strings.EOL));
   }
 
-  /**
-   * Gibt einen Import Task zurück
-   *
-   * @param lines
-   * @param type
-   *          's' für SQL Import, ansonsten CSV Import
-   * @param dc
-   * @return
-   */
-  ImportTask importTask(final List<String> lines, final char type, final DatabaseConnection dc) {
-    ImportTask it = null;
-    final String listString = lines.stream().map(Object::toString).collect(Collectors.joining("\r\n"));
-    if (type == 's') {
-      it = new ImportSqlTask(dc, listString);
+  @Override
+  public ImportTask importTask(final File f, final char type) {
+    if (f != null) {
+      return importTask(readFile(f), type, f.getParent(), getNewDatabaseConnection());
     } else {
-      it = new ImportCategoryTask(dc, listString);
+      return null;
+    }
+  }
+
+  ImportTask importTask(final String input, final char type, final String inputPath, final DatabaseConnection dc) {
+    ImportTask it = null;
+    if (type == Strings.IMPORTTYPESQL) {
+      it = new ImportSqlTask(dc, input);
+      config.setPathImportSql(inputPath);
+    } else {
+      it = new ImportCategoryTask(dc, input);
+      config.setPathImportCat(inputPath);
     }
     return it;
   }
@@ -266,7 +400,7 @@ public class ModelImpl implements Model {
     boolean change = true;
     while (change) {
       change = false;
-      for (final Index i : li) { // Prüft alle indizes nach der höchsten Nummer
+      for (final Index i : li) { // PrÃ¼ft alle indizes nach der hÃ¶chsten Nummer
         if (number < 10 && i.getName().substring(3, 4).contains(number.toString())
             || number >= 10 && i.getName().substring(3, 5).contains(number.toString())) {
           number++;
@@ -277,4 +411,36 @@ public class ModelImpl implements Model {
     return number;
   }
 
+  @Override
+  public Validator getValidator() {
+    return val;
+  }
+
+  @Override
+  public List<CategoryObj> getCategorySelection() {
+    final List<CategoryObj> co = new ArrayList<>();
+    for (final String cat : ct.getAllCategories()) {
+      co.add(new CategoryObj(cat, 0, ct.translateNumberIntoName(cat)));
+    }
+    Collections.sort(co);
+    for (int i = 0; i < co.size(); i++) {
+      co.get(i).setSortId(i + 1);
+    }
+    return co;
+  }
+
+  @Override
+  public void saveCategoryList(final Map<String, String> categories) {
+    ct.save(categories);
+  }
+
+  @Override
+  public LoadPdfConfiguration getPdfConfig() {
+    return config;
+  }
+
+  @Override
+  public Map<String, Integer> getDatabaseStats() {
+    return db.getDatabaseStats();
+  }
 }

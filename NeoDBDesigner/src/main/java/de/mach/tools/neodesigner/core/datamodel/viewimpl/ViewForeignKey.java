@@ -1,28 +1,46 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.core.datamodel.viewimpl;
 
-import de.mach.tools.neodesigner.core.datamodel.Field;
 import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
 import de.mach.tools.neodesigner.core.datamodel.Index;
 import de.mach.tools.neodesigner.core.datamodel.Table;
 import de.mach.tools.neodesigner.core.datamodel.impl.ForeignKeyImpl;
 
-import java.util.List;
-
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 /**
- * Implementation von Fremdschlüssel für den View.
+ * Implementation von FremdschlÃ¼ssel fÃ¼r den View.
  *
  * @author Chris Deter
  *
  */
-public class ViewForeignKey extends ViewIndex implements ForeignKey {
+public class ViewForeignKey extends ViewNodeImpl<ForeignKey> implements ForeignKey {
   private ViewTable refTable = null;
   private ViewIndex fieldIndex = null;
   private final StringProperty refTableName = new SimpleStringProperty("");
   private boolean modifiedRel = false;
-  private final ForeignKey data;
 
   /**
    * Konstruktor.
@@ -34,13 +52,11 @@ public class ViewForeignKey extends ViewIndex implements ForeignKey {
    */
   public ViewForeignKey(final ForeignKey i, final ViewTable nodeOf) {
     super(new ForeignKeyImpl(i.getName(), nodeOf));
-    data = (ForeignKey) super.getNode();
     fieldIndex = new ViewIndex(i.getIndex(), nodeOf);
-    data.setIndex(fieldIndex);
+    getNode().setIndex(fieldIndex);
     refTable = new ViewTable(i.getRefTable().getName());
-    data.setRefTable(refTable);
+    getNode().setRefTable(refTable);
     refTableName.set(refTable.getName());
-    fieldListAsString.set(data.getFieldList().toString());
   }
 
   /**
@@ -51,10 +67,10 @@ public class ViewForeignKey extends ViewIndex implements ForeignKey {
    * @param nodeOf
    *          ViewTable die dieser FK zugeordnet ist
    */
-  public ViewForeignKey(final String name, final ViewTable nodeOf) {
+  public ViewForeignKey(final String name, final ViewIndex i, final ViewTable nodeOf) {
     super(new ForeignKeyImpl(name, nodeOf));
-    data = (ForeignKey) super.getNode();
-    fieldListAsString.set(data.getFieldList().toString());
+    setIndex(i);
+    modifiedRel = false;
   }
 
   @Override
@@ -63,24 +79,25 @@ public class ViewForeignKey extends ViewIndex implements ForeignKey {
   }
 
   /**
-   * View Methode um zu erkennen ob der FK verändert wurde.
+   * View Methode um zu erkennen ob der FK verÃ¤ndert wurde.
    *
-   * @return True wenn eine Änderung aufgetreten ist
+   * @return True wenn eine Ã„nderung aufgetreten ist
    */
-  public boolean isModified() {
+  public boolean isModifiedRel() {
     return modifiedRel;
   }
 
   /**
    * setzt die Modified Eigenschaft auf True, die besagt, ob die Felder des FK
-   * sich geändert haben.
+   * sich geÃ¤ndert haben.
    */
-  public void setModified() {
+  public void setModifiedRel() {
+    setModified();
     modifiedRel = true;
   }
 
   /**
-   * Referenztabelle als ViewTable Object (notwendig für GUI)
+   * Referenztabelle als ViewTable Object (notwendig fÃ¼r GUI).
    *
    * @return RefTable als ViewTable
    */
@@ -89,18 +106,12 @@ public class ViewForeignKey extends ViewIndex implements ForeignKey {
   }
 
   /**
-   * Property für die Tabelle in der GUI
-   * 
+   * Property fÃ¼r die Tabelle in der GUI.
+   *
    * @return TableRefName als StringProperty
    */
   public StringProperty getRefTableName() {
     return refTableName;
-  }
-
-  @Override
-  protected void modifiedFieldList() {
-    fieldListAsString.set(data.getFieldList().toString());
-    modifiedDatafields = true;
   }
 
   @Override
@@ -121,7 +132,8 @@ public class ViewForeignKey extends ViewIndex implements ForeignKey {
 
   @Override
   public void setIndex(final Index i) {
-    fieldIndex = new ViewIndex(i, (ViewTable) getNodeOf());
+    fieldIndex = new ViewIndex(i, (ViewTable) getTable());
+    getNode().setIndex(i);
     modifiedRel = true;
   }
 
@@ -129,50 +141,6 @@ public class ViewForeignKey extends ViewIndex implements ForeignKey {
   public void saved() {
     super.saved();
     modifiedRel = false;
-  }
-
-  @Override
-  public List<Field> getFieldList() {
-    return fieldIndex.getFieldList();
-  }
-
-  @Override
-  public void addField(final Field f) {
-    fieldIndex.addField(f);
-    modifiedFieldList();
-  }
-
-  @Override
-  public void addField(final Field f, final String altName) {
-    fieldIndex.addField(f, altName);
-    modifiedFieldList();
-  }
-
-  @Override
-  public void removeField(final int i) {
-    fieldIndex.removeField(i);
-    modifiedFieldList();
-  }
-
-  @Override
-  public void clearFieldList() {
-    fieldIndex.clearFieldList();
-    modifiedFieldList();
-  }
-
-  @Override
-  public String getOrder(final String name) {
-    return fieldIndex.getOrder(name);
-  }
-
-  @Override
-  public void setAltName(final String name, final String altName) {
-    fieldIndex.setAltName(name, altName);
-  }
-
-  @Override
-  public String getAltName(final String name) {
-    return fieldIndex.getAltName(name);
   }
 
   @Override
@@ -187,5 +155,9 @@ public class ViewForeignKey extends ViewIndex implements ForeignKey {
   @Override
   public int hashCode() {
     return getName().hashCode();
+  }
+
+  public StringProperty fieldListStringProperty() {
+    return fieldIndex.fieldListStringProperty();
   }
 }

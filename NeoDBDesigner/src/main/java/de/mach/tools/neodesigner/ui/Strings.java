@@ -1,8 +1,30 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.ui;
 
 /**
  * Strings werden hier hin ausgelagert.
- * 
+ *
  * @author Chris Deter
  *
  */
@@ -10,23 +32,38 @@ public final class Strings {
   private Strings() {
   }
 
+  public static final String EMPTYSTRING = "";
+
   static final String RELNAME_XPK = "XPK";
+
+  static final String NAME_XIE = "XIE";
 
   public static final String SOFTWARENAME = "Neo Database Designer";
 
   public static final String NAME_NEWTABLE = "newTable";
 
-  public static final String SOFTWAREAUTHOR = "by Chris Deter";
+  public static final String SOFTWAREINFO = "Neo Database Manager" + Strings.EOL
+      + "Icon: http://www.iconarchive.com/show/blue-bits-icons-by-icojam/database-settings-icon.html" + Strings.EOL
+      + Strings.EOL + "Copyright (c) 2017 Chris Deter (MIT-License)";
 
-  public static final String VERSION = "Version: 0.9.1";
+  public static final String EOL = "\r\n";
+  public static final String VERSION = "This Software uses:" + Strings.EOL + "ANTLR 4.7" + Strings.EOL
+      + "Controlsfx 8.40.14" + Strings.EOL + "Graphstream 1.3" + Strings.EOL + "Neo4J Java Driver 1.5.0"
+      + "(Compatible with 3.3, 3.2, 3.1, 3.0 neo4j servers)" + Strings.EOL + Strings.EOL + "Version: 1.2.0";
 
-  private static final String FXML_PATH = "/de/mach/tools/neoDBDesigner/ui/";
+  private static final String FXML_PATH = "/de/mach/tools/neodesigner/ui/";
 
-  static final String FXML_FKRELEDITOR = Strings.FXML_PATH + "fkRelEditor.fxml";
+  public static final String FXML_ICON = Strings.FXML_PATH + "db.png";
+
+  public static final String FXML_FKRELEDITOR = Strings.FXML_PATH + "fkRelEditor.fxml";
 
   static final String FXML_NEDDBDESIGNER = Strings.FXML_PATH + "neoDBDesignerView.fxml";
 
-  static final String FXML_INDEXRELEDITOR = Strings.FXML_PATH + "indexRelEditor.fxml";
+  static final String FXML_TABLEVIEW = Strings.FXML_PATH + "tableTabView.fxml";
+
+  public static final String FXML_INDEXRELEDITOR = Strings.FXML_PATH + "indexRelEditor.fxml";
+
+  public static final String FXML_PDFEDITOR = Strings.FXML_PATH + "modelPrinterView.fxml";
 
   public static final String TITLE_FINDNEO4JFOLDER = "Open Neo4J Folder";
 
@@ -36,11 +73,11 @@ public final class Strings {
 
   public static final String TITLE_EXPORTCSV = "Open CSV File";
 
-  static final String TITLE_RELEDITOR = "Edit Relation";
+  public static final String TITLE_RELEDITOR = "Edit Relation";
 
   public static final String EXPORTSQLDEFAULT = "export.sql";
 
-  public static final String EXPORTCSVDEFAULT = "Print_DB_Report.csv";
+  public static final String EXPORTCQLDEFAULT = "export.cql";
 
   public static final String DBSTATUS_ONLINE = "Online";
 
@@ -58,9 +95,9 @@ public final class Strings {
 
   public static final String ALTEXT_EXPORTERR = "Export failed!";
 
-  static final String ALTITLE_RELEDITOR = "Index not editable";
+  public static final String ALTITLE_RELEDITOR = "Index not editable";
 
-  static final String ALTEXT_RELEDITOR = "You cannot modify " + " Indizies other than XAK and XIE!";
+  public static final String ALTEXT_RELEDITOR = "You cannot modify " + " Indizies other than XAK and XIE!";
 
   public static final String ALTITLE_FILEERR = "File Error";
 
@@ -68,20 +105,18 @@ public final class Strings {
 
   public static final String ALTITLE_DATABASEERR = "Database Error";
 
-  public static final String ALTEXT_DATABASEERR_CONNECT = "Could not connect";
+  public static final String ALTEXT_DATABASEERR_CONNECT = "Connection failed!";
 
   public static final String ALTEXT_DATABASEERR_UNEX_INPUT = "There was " + "an unexpected Input from the Database";
 
   public static final String ALTEXT_DATABASEERR_UNEX_ERR = "There was an " + "unexpected error while importing";
 
-  public static final String INDEXTOOLTIP = "Primärschlüssel: „XPK“\n" + "Fremschlüssel: „R“\n"
-      + "Indizes für Fremdschlüssel: „XIF“\n" + "Eindeutige Indizes: „XAK“\n" + "Einfache Indizes: „XIE“\n";
+  public static final String INDEXTOOLTIP = "PrimÃ¤rschlÃ¼ssel: â€žXPKâ€œ\n" + "FremschlÃ¼ssel: â€žRâ€œ\n"
+      + "Indizes fÃ¼r FremdschlÃ¼ssel: â€žXIFâ€œ\n" + "Eindeutige Indizes: â€žXAKâ€œ\n" + "Einfache Indizes: â€žXIEâ€œ\n";
 
   public static final String NAME_SECONDELEMENT = "_new";
 
   public static final String LABELNAME_TABLE = "Table: ";
-
-  static final String LABELNAME_NAME = "Name: ";
 
   public static final String TABLEROW_NAME = "Name";
 
@@ -90,8 +125,6 @@ public final class Strings {
   public static final String NAME_TABLES = "Tables";
 
   static final String NAME_FKS = "Foreign Keys";
-
-  static final String NAME_FK = "Foreign Key";
 
   static final String ALTITLE_DELTABLE = "Delete Table";
 
@@ -106,33 +139,145 @@ public final class Strings {
 
   static final String NAME_PRIMKEY = "Primary Key";
 
-  static final String BUTTONNAME_SAVE = "Save ";
+  public static final String BUTTONNAME_SAVE = "Save ";
 
-  static final String BUTTONNAME_DELETE = "Delete ";
+  public static final String BUTTONNAME_DELETE = "Delete ";
 
-  static final String BUTTONNAME_ADD = "Add ";
+  public static final String BUTTONNAME_ADD = "Add ";
 
-  static final String BUTTONNAME_MODIFY = "Modify ";
+  public static final String NAME_FIELDS = "Fields";
 
-  static final String NAME_FIELD = "Field";
+  public static final String NAME_NEWFIELD = "newField";
 
-  static final String NAME_INDEX = "Index";
+  public static final String NAME_FIELD_ISNULL = "Required";
 
-  static final String NAME_FIELDS = "Fields";
+  public static final String NAME_FIELD_ISPRIM = "Primaer";
 
-  static final String LABELNAME_KATEGORY = "Kategory: ";
+  public static final String NAME_FIELD_DATATYPE = "type";
 
-  static final String NAME_NEWFIELD = "newField";
+  public static final String NAME_INDEX_ISUNIQUE = "unique";
 
-  static final String NAME_NEWFIELD_DATATYPE = "VARCHAR2(10)";
+  public static final String NAME_TABLE = "Table";
 
-  static final String NAME_FIELD_ISNULL = "Required";
+  public static final String NAMEEMPTYCATEGORY = "0,0";
 
-  static final String NAME_FIELD_ISPRIM = "Primaer";
+  public static final String GRAPHSTREAMUICSSLABEL = "ui.label";
 
-  static final String NAME_FIELD_DATATYPE = "type";
+  public static final String GRAPHSTREAMUICSSCLASS = "ui.class";
 
-  static final String NAME_INDEX_ISUNIQUE = "unique";
+  public static final String SEMICOLON = ";";
 
-  static final String NAME_TABLE = "Table";
+  static final String UNDERSCORE = "_";
+
+  public static final String STAR = "*";
+
+  public static final String NAME_REFTABLE = "Ref Table";
+
+  static final String ALTITLE_CLOSETABLE = "Close Table";
+
+  static final String ALTEXT_CLOSETABLE = "Do you really want to close the table %s without saving?";
+
+  public static final String ALTITLE_DATABASENOTEMPTY = "Database is not empty!";
+
+  public static final String ALTEXT_DATABASEERR_NOTEMPTY = "The database already contains information. Importing "
+      + "another datamodel could mess up the database.";
+
+  public static final String ALTEXT_CLEANDATABASE = "Do you want to clean the database before importing a new "
+      + "datamodel?";
+
+  public static final String TITLE_EXPORTSQL = "Choose Export SQL File";
+
+  public static final String TITLE_EXPORTCQL = "Choose Export CQL File";
+
+  static final String NAME_R = "R";
+
+  public static final Object CLASS_SMALL = "small";
+
+  public static final Object CLASS_TABLE = "table";
+
+  public static final Object CLASS_FIELD = "field";
+
+  public static final Object CLASS_INDEX = "index";
+
+  public static final Object CLASS_PRIMARY = "primary";
+
+  public static final Object CLASS_DOBULEREL = "doubleRel";
+
+  public static final String NOTIFICATION_IMPORT = "Finished Import!";
+
+  public static final String NOTIFICATION_EXPORT = "Finished Export!";
+
+  public static final String TABLEROW_COMMENT = "Comment";
+
+  public static final String DEFAULT_CATEGORY = "0,0";
+
+  public static final String NAME_CATEGORY = " Category";
+
+  public static final String TITLE_DISPLAYCATGRAPH = "Display Cateogry Graph";
+
+  public static final String ALTITLE_DISPLAYCATGRAPH = "This graph contains all categories that start with the search term. "
+      + "You can define more than one category with semicolon.";
+
+  public static final String ALTEXT_DISPLAYCATGRAPH = "Please enter the search term:";
+
+  public static final String DETAILDATABASEERR = "Could not establish connection to neo4j server!";
+
+  public static final String LOG_WARNINGLOADDBMORETHANONCE = "loading failed - loading already in progress!";
+
+  public static final char TYPE_CQL = 'y';
+
+  public static final char TYPE_SQL = 's';
+
+  public static final char TYPE_CSV = 'c';
+
+  static final String LOG_COULDNOTSAVE = "Could not save:";
+
+  public static final String TITLE_PDF_EXPORT = "Model Report PDF Printer";
+
+  public static final String PATH_ERROR = "Pfad Fehler";
+
+  public static final String PATH_ERROR_DETAIL = "Nicht alle notwendigen Pfade wurden gesetzt!";
+
+  public static final String PATH_ERROR_NOT_VALID = "Dieser Pfad ist nicht gÃ¼ltig!";
+
+  public static final String UPDATETEXT_CREATEPDF = "Erstelle PDF";
+
+  public static final String UPDATETEXT_TEMPLATE = "verarbeite Template";
+
+  public static final String UPDATETEXT_RUN1 = "Lauf 1 PDF Erstellung";
+
+  public static final String UPDATETEXT_CREATEINDEX = "Erstelle Index";
+
+  public static final String UPDATETEXT_RUN2 = "Lauf 2 PDF Erstellung";
+
+  public static final String UPDATETEXT_COPYPDF = "PDF erfolgreich erstellt - Kopiere PDF zum Zielort";
+
+  public static final String UPDATETEXT_CLEAN = "RÃ¤ume Auf!";
+
+  public static final String UPDATETEXT_FINISHED = "PDF erfolgreich erstellt!";
+
+  public static final String UPDATETEXT_ERR = "Verarbeitungsfehler (%s)";
+
+  public static final String ERROR = "Error";
+
+  public static final String ERROR_CANT_REUSE_FIELD = "Cannot reuse a selected Field";
+
+  public static final String ERROR_CANT_REUSE_FIELD_DETAIL = "Type of selected Field is not compatible with ForeignKey!";
+
+  public static final String ALTITLE_OVERWRITEFIELD = "Really overwrite field?";
+
+  public static final String ALTEXT_OVERWRITEFIELD = "Do you really want to use a field that is already there?";
+
+  public static final String ALTEXT_OVERWRITEFIELDDETAIL = "Following Fields will be connected with the Foreignkey? \r\n";
+
+  public static final String NAME_CATEGORIES = "all Categories";
+
+  public static final String TABCATEGORY = ":Category";
+
+  public static final String ALTITLEDBINFO = "Information about this Database";
+
+  public static final String ALLNODES = "All Nodes";
+
+  public static final String SPACERFORINFO = ":\t";
+
 }

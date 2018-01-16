@@ -1,15 +1,42 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.core;
 
+import de.mach.tools.neodesigner.core.category.CategoryObj;
 import de.mach.tools.neodesigner.core.datamodel.Index;
 import de.mach.tools.neodesigner.core.datamodel.Table;
+import de.mach.tools.neodesigner.core.nexport.pdf.LoadPdfConfiguration;
 import de.mach.tools.neodesigner.core.nimport.ImportTask;
+import de.mach.tools.neodesigner.database.cypher.DatabaseConnector;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.Observable;
+import java.util.Optional;
 
 /**
- * Schnittstelle für den View (der drüberliegenden Schicht)
+ * Schnittstelle fÃ¼r den View (der drÃ¼berliegenden Schicht).
  *
  * @author Chris Deter
  *
@@ -17,15 +44,15 @@ import java.util.Observable;
 public interface Model {
 
   /**
-   * Gibt ein Observable des Datenmodells zurück (für TreeView).
+   * Gibt ein Observable des Datenmodells zurÃ¼ck (fÃ¼r TreeView).
    *
    * @return Observable des Datenmodells
    */
   Observable dataModelObservable();
 
   /**
-   * gibt eine List mit Strings zurück, die alle Namen der Datenbanken enthält.
-   * (für Autocomplete)
+   * gibt eine List mit Strings zurÃ¼ck, die alle Namen der Datenbanken enthÃ¤lt.
+   * (fÃ¼r Autocomplete)
    *
    * @return Liste mit Strings von allen Tabellen in der Datenbank
    */
@@ -50,14 +77,14 @@ public interface Model {
   boolean connectDb(String dbadr, String usr, String pw);
 
   /**
-   * Task welche Daten aus der DB läd.
+   * Task welche Daten aus der DB lÃ¤d.
    *
    * @return Task
    */
-  LoadFromDbTask loadFrmDbTask();
+  LoadFromDbTask loadFromDbTask(DatabaseConnector dbcon);
 
   /**
-   * gibt eine neue Tabelle zurück.
+   * gibt eine neue Tabelle zurÃ¼ck.
    *
    * @param tableName
    *          Name der Tabelle
@@ -66,24 +93,29 @@ public interface Model {
   Table getnewTable(String tableName);
 
   /**
-   * gibt eine Tabelle aus der Datenbank zurück.
+   * gibt eine Tabelle aus der Datenbank zurÃ¼ck.
    *
    * @param tablename
    *          Name der Tabelle
    * @return die angeforderte Tabelle aus der Datenbank oder Null
    */
-  Table getTable(String tablename);
+  Optional<Table> getTable(String tablename);
 
   /**
-   * gibt alle Tabellen die in der Software gespeichert sind, greift nicht auf
-   * die Datenbank zurück.
+   * gibt eine Tabelle aus der Datenbank zurÃ¼ck.
    *
-   * @return Tabellen aus dem Datenmodell
+   * @param tablename
+   *          Name der Tabelle
+   *
+   * @param useLocalDb
+   *          true: nutze Datenmodell als quelle: false: lade Tabelle aus
+   *          Datenbank
+   * @return die angeforderte Tabelle aus der Datenbank oder Null
    */
-  List<Table> getAllLocalTables();
+  Optional<Table> getTable(String tablename, boolean useLocalDb);
 
   /**
-   * läd alle Tabellen aus der Datenbank (genutzt in LoadFromDBTask).
+   * lÃ¤d alle Tabellen aus der Datenbank (genutzt in LoadFromDBTask).
    *
    * @return Liste mit allen Datenbankfeldern
    */
@@ -97,27 +129,27 @@ public interface Model {
   boolean isOnline();
 
   /**
-   * gibt eine laufende Nummer für die Fremdschlüssel zurück.
+   * gibt eine laufende Nummer fÃ¼r die FremdschlÃ¼ssel zurÃ¼ck.
    *
-   * @return nächste Fremdschlüsselnummer
+   * @return nÃ¤chste FremdschlÃ¼sselnummer
    */
   int getNextFkNumber();
 
   /**
-   * Löscht die gesammte Datenbank.
+   * LÃ¶scht die gesammte Datenbank.
    */
   boolean deleteDatabase();
 
   /**
-   * gibt ein Objekt zurück auf dem gespeichert werden kann.
+   * gibt ein Objekt zurÃ¼ck auf dem gespeichert werden kann.
    *
    * @return das Save Objekt
    */
   Save getSaveObj();
 
   /**
-   * Gibt die Information zurück ob eine Datei bekannt ist um den Neo4J Server
-   * zu starten.
+   * Gibt die Information zurÃ¼ck ob eine Datei bekannt ist um den Neo4J Server zu
+   * starten.
    *
    * @return True wenn die Neo4j Startdatei gefunden wurde
    */
@@ -140,28 +172,28 @@ public interface Model {
   Boolean startNeoServer();
 
   /**
-   * gibt die Maximale Wortlänge für Namen zurück.
+   * gibt die Maximale WortlÃ¤nge fÃ¼r Namen zurÃ¼ck.
    *
-   * @return Max Wortlänge
+   * @return Max WortlÃ¤nge
    */
   int getWordLength();
 
   /**
-   * gibt die Adresse der Datenbank zurück.
+   * gibt die Adresse der Datenbank zurÃ¼ck.
    *
    * @return Datenbankadresse
    */
   String getAddrOfDb();
 
   /**
-   * gibt den Datenbankbenutzer zurück.
+   * gibt den Datenbankbenutzer zurÃ¼ck.
    *
    * @return Datenbankbenutzer
    */
   String getUser();
 
   /**
-   * gibt das Datenbankpasswort zurück.
+   * gibt das Datenbankpasswort zurÃ¼ck.
    *
    * @return Datenbankpasswort
    */
@@ -173,24 +205,24 @@ public interface Model {
    * @param f
    *          Die DAtei
    * @param type
-   *          Typ der zu schreibenen Datei ? c für CSV, s für SQL
+   *          Typ der zu schreibenen Datei ? c fÃ¼r CSV, s fÃ¼r SQL
    * @return true wenn die Datei auf die Festplatte geschrieben wurde
    */
   Boolean writeExportFile(File f, char type);
 
   /**
-   * gibt einen ImportTask zurück.
+   * gibt einen ImportTask zurÃ¼ck.
    *
-   * @param file
-   *          Die Datei für den Import
+   * @param f
+   *          Die zu importierende Datei
    * @param type
-   *          Typ des imports. c für CSV, s für SQL
+   *          Typ des imports. c fÃ¼r CSV, s fÃ¼r SQL
    * @return Task
    */
-  ImportTask importTask(File file, char type);
+  ImportTask importTask(File f, char type);
 
   /**
-   * gibt die nächste Nummer für den Index in einer Tabelle zurück.
+   * gibt die nÃ¤chste Nummer fÃ¼r den Index in einer Tabelle zurÃ¼ck.
    *
    * @param li
    *          Liste mit allen Indizes der Tabelle
@@ -199,10 +231,92 @@ public interface Model {
   Integer getNextNumberForIndex(List<Index> li);
 
   /**
-   * gibt einen Array mit allen Datentypen für das Select Feld zurück.
+   * gibt einen Array mit allen Datentypen fÃ¼r das Select Feld zurÃ¼ck.
    *
-   * @return Array mit allen Datentypen für das Select Feld
+   * @return Array mit allen Datentypen fÃ¼r das Select Feld
    */
   String[] getSelectDatatype();
+
+  /**
+   * Gibt die LÃ¤nge zurÃ¼ck, in der ein Tabellenname eindeutig sein muss.
+   *
+   * @return int mit eindeutiger LÃ¤nge
+   */
+  Validator getValidator();
+
+  /**
+   * LÃ¤d eine Liste mit Tabellen ins Model.
+   *
+   * @param lt
+   *          Liste mit Tabellen
+   */
+  void addTableList(List<Table> lt);
+
+  /**
+   * Schreibt im Zielverzeichnis alle CSV Dateien die fÃ¼r die Datenbank Toolchain
+   * benÃ¶tigt werden.
+   *
+   * @param file
+   *          der Zielordner
+   * @return die Dateien
+   */
+  boolean writeToolchainReport(File file);
+
+  /**
+   * Importiert ein ganzes Verzeichnis (mit CSV Dateien).
+   *
+   * @param file
+   *          Die Dateien
+   * @return den Task zum Importieren
+   */
+  ImportTask importFolderTask(File file);
+
+  /**
+   * Gibt eine Liste mit allen Kategorien in der Datenbank zurÃ¼ck.
+   *
+   * @return Liste mit allen Kategorien.
+   */
+  List<String> getAllCategories();
+
+  /**
+   * fÃ¼llt das Kategorie Auswahlfeld.
+   *
+   * @return sortierte Category List
+   */
+  List<CategoryObj> getCategorySelection();
+
+  /**
+   * Speichert eine Liste mit Kategorien ab.
+   *
+   * @param map
+   *          die Liste mit Kategorien
+   */
+  void saveCategoryList(Map<String, String> map);
+
+  /**
+   * gibt die Config fÃ¼r den PDF Export zurÃ¼ck.
+   *
+   * @return pdf Config
+   */
+  LoadPdfConfiguration getPdfConfig();
+
+  /**
+   * Gibt informationen Ã¼ber die GrÃ¶ÃŸe der Datenbank zurÃ¼ck.
+   *
+   * @return Map mit Eigenschaften der Datenbank
+   */
+  Map<String, Integer> getDatabaseStats();
+
+  String getPathImportSql();
+
+  String getPathImportCat();
+
+  String getPathImportCsv();
+
+  String getPathExportSql();
+
+  String getPathExportCsv();
+
+  String getPathExportCql();
 
 }

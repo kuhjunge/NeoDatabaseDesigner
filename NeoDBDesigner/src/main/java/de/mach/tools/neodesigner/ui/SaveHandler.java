@@ -1,14 +1,32 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.ui;
 
 import de.mach.tools.neodesigner.core.Save;
-
+import de.mach.tools.neodesigner.core.SaveManager;
 import de.mach.tools.neodesigner.core.Validator;
-import de.mach.tools.neodesigner.core.datamodel.Field;
-import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
-import de.mach.tools.neodesigner.core.datamodel.Index;
 import de.mach.tools.neodesigner.core.datamodel.Table;
 import de.mach.tools.neodesigner.core.datamodel.impl.FieldImpl;
-import de.mach.tools.neodesigner.core.datamodel.impl.ForeignKeyImpl;
 import de.mach.tools.neodesigner.core.datamodel.impl.IndexImpl;
 import de.mach.tools.neodesigner.core.datamodel.impl.TableImpl;
 import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewField;
@@ -17,10 +35,11 @@ import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewIndex;
 import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewNodeImpl;
 import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewTable;
 import de.mach.tools.neodesigner.ui.Strings;
-import de.mach.tools.neodesigner.ui.controller.DbTableTabController;
 import de.mach.tools.neodesigner.ui.controller.NeoDbDesignerController;
 
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -28,33 +47,36 @@ import javafx.scene.control.ButtonType;
 
 /**
  * Bekommt ein ViewObjekt von der GUI und startet die Verarbeitung der
- * Änderungen im Model.
+ * Ã„nderungen im Model.
  *
  * @author Chris Deter
  *
  */
 public class SaveHandler {
-
+  private static final Logger LOG = Logger.getLogger(SaveHandler.class.getName());
   private final Save save;
+  private final SaveManager pkcm;
 
   /**
-   * Konstruktor
+   * Konstruktor.
    *
    * @param dm
+   *          Save Interface
    */
   public SaveHandler(final Save dm) {
     save = dm;
+    pkcm = new SaveManager(save);
   }
 
   /**
-   * Wird aufgerufen wenn eine Tabelle gelöscht werden soll.
+   * Wird aufgerufen wenn eine Tabelle gelÃ¶scht werden soll.
    *
    * @param t
-   *          Die zu löschende Tabelle
+   *          Die zu lÃ¶schende Tabelle
    * @param dbtv
    *          Der TableTab Controller
    */
-  public void deleteHandlerForTab(final ViewTable t, final DbTableTabController dbtv) {
+  public void deleteHandlerForTab(final ViewTable t, final DbTableTabStarter dbtv) {
     final Alert alert = new Alert(AlertType.CONFIRMATION);
     alert.setTitle(Strings.ALTITLE_DELTABLE);
     alert.setHeaderText(Strings.ALTEXT_DELTABLE + t.getName());
@@ -69,34 +91,37 @@ public class SaveHandler {
   /**
    * Wird aufgerufen um eine Tabelle zu speichern.
    *
-   * @param dbtv
+   * @param dbtts
    *          Der TableTab Controller
-   * @param wordLength
-   *          die maximale Wortlänge die tabellen, Spalten, Indizes und FKs
-   *          haben dürfen
+   * @param validator
+   *          der Validator, welcher verwendet wird um die Tabelle zu validieren
    */
-  public void saveHandlerForTab(final DbTableTabController dbtv, final int wordLength) {
-    final ViewTable t = dbtv.getTable();
-    final Validator validator = new Validator(wordLength, wordLength, save);
+  public void saveHandlerForTab(final DbTableTabStarter dbtts, final Validator validator) {
+    final ViewTable t = dbtts.getTable();
 
-    final int maxXpkLenght = wordLength - Strings.RELNAME_XPK.length() - 1;
-    final String xpkName = Strings.RELNAME_XPK + dbtv.getNewName().substring(0,
-        dbtv.getNewName().length() >= maxXpkLenght ? maxXpkLenght : dbtv.getNewName().length());
+    final int maxXpkLenght = validator.getNodeNameLength() - Strings.RELNAME_XPK.length() - 1;
+    final String xpkName = Strings.RELNAME_XPK + dbtts.getNewName().substring(0,
+        dbtts.getNewName().length() >= maxXpkLenght ? maxXpkLenght : dbtts.getNewName().length());
     t.getXpk().setName(xpkName);
 
-    if (validator.validateTable(t, t.isNewCreated()) && validator.validateName(dbtv.getNewName())) {
-      if (t.isNewCreated()) { // füge neue Tabelle ein
-        createTable(dbtv, t);
+    if (validator.validateTable(t, t.isNewCreated())
+        && validator.validateTableName(dbtts.getNewName(), t.getOldName())) {
+      if (t.isNewCreated()) { // fÃ¼ge neue Tabelle ein
+        createTable(dbtts, t);
       } else {
-        saveTable(dbtv, t);
-        for (final ViewNodeImpl tf : t.delete) {
+        saveTable(dbtts, t);
+        for (final ViewNodeImpl<?> tf : t.getDeleteRaw()) {
           save.deleteNode(tf.getNode());
         }
       }
-      saveData(t);
-      saveIndizies(t);
-      saveForeignKeys(t);
-
+      final Optional<Table> dbtable = save.getTable(t.getName());
+      if (dbtable.isPresent()) {
+        saveData(t, dbtable.get());
+        saveIndizies(t, dbtable.get());
+        saveForeignKeys(t, dbtable.get());
+      } else {
+        SaveHandler.LOG.log(Level.WARNING, () -> Strings.LOG_COULDNOTSAVE + t.getName());
+      }
       t.saved();
     } else {
       NeoDbDesignerController.popupError(Strings.ALTITLE_SAVEERR, Strings.ALTEXT_SAVEERR, validator.getLastError());
@@ -104,70 +129,100 @@ public class SaveHandler {
   }
 
   /**
-   * erstellt eine neue Tabelle
+   * erstellt eine neue Tabelle.
    *
    * @param dbtv
+   *          TableTabController
    * @param t
+   *          Table
    */
-  private void createTable(final DbTableTabController dbtv, final ViewTable t) {
+  private void createTable(final DbTableTabStarter dbtv, final ViewTable t) {
     final TableImpl newTable = new TableImpl(dbtv.getNewName());
     t.setName(dbtv.getNewName());
-    newTable.setCategory(dbtv.getNewKategory());
+    newTable.setCategory(dbtv.getNewCategory());
     newTable.setXpk(t.getXpk());
+    newTable.setComment(dbtv.getNewComment());
     save.insertNewTable(newTable);
     save.insertNewIndex(newTable.getXpk());
     dbtv.getTab().setText(t.getName());
   }
 
   /**
-   * Speichert eine Tabelle
+   * Speichert eine Tabelle.
    *
    * @param dbtv
+   *          TableTabController um neuen Namen und Kategorie der tabelle aus der
+   *          GUI zu laden
    * @param t
+   *          die Tabelle
    */
-  private void saveTable(final DbTableTabController dbtv, final ViewTable t) {
+  private void saveTable(final DbTableTabStarter dbtv, final ViewTable t) {
     // Speichere neuenTabellennamen
-    if (t.getName().compareTo(dbtv.getNewName()) != 0) {
+    if (!t.getName().equals(dbtv.getNewName())) {
       save.changeTableName(t.getName(), dbtv.getNewName(), t.getXpk().getName());
       t.setName(dbtv.getNewName());
       dbtv.getTab().setId(t.getName());
       dbtv.getTab().setText(t.getName());
     }
     // Speichere neue Kategorie
-    if (t.getCategory().compareTo(dbtv.getNewKategory()) != 0) {
-      save.changeTableCategory(t.getName(), dbtv.getNewKategory());
+    if (!t.getCategory().equals(dbtv.getNewCategory())) {
+      save.changeTableCategory(t.getName(), dbtv.getNewCategory());
+    }
+    // Speichere neues Kommentar
+    if (!t.getComment().equals(dbtv.getNewComment())) {
+      save.saveComment(t.getName(), dbtv.getNewComment());
     }
   }
 
   /**
-   * Speichert die Felder einer Tabelle
+   * Speichert die Felder einer Tabelle.
    *
    * @param t
+   *          die tabelle
+   * @param table
+   *          Datenmodell Tabelle
    */
-  private void saveData(final ViewTable t) {
-    for (final ViewField tf : t.dataFields) {
+  private void saveData(final ViewTable t, final Table table) {
+    for (final ViewField tf : t.getDataFieldsRaw()) {
       if (tf.isNewCreated()) {
+        // TODO: auslagern
         // Speichere neue Felder
         save.insertNewField(
-            new FieldImpl(tf.getName(), tf.getTypeOfData(), tf.isRequired(), save.getTable(t.getName())));
+            new FieldImpl(tf.getName(), tf.getDomain(), tf.getDomainLength(), tf.isRequired(), tf.getComment(), table));
         if (tf.isModifiedPrim()) {
-          save.changeFieldIsPartOfPrim(tf.getName(), t.getName(), tf.isPartOfPrimaryKey());
+          pkcm.changeFieldIsPartOfPrim(tf.getName(), t.getName(), tf.isPartOfPrimaryKey());
         }
         tf.saved();
+      } else {
+        saveFieldChanges(t, tf);
+        tf.saved();
       }
-      if (tf.isModifiedName()) {
-        save.changeNodeNameFromTable(tf.getOldName(), t.getName(), tf.getName());
-      }
-      if (tf.isModifiedType()) {
-        save.changeFieldTypeOfData(tf.getName(), t.getName(), tf.getTypeOfData());
-      }
-      if (tf.isModifiedReq()) {
-        save.changeFieldRequired(tf.getName(), t.getName(), tf.isRequired());
-      }
-      if (tf.isModifiedPrim()) {
-        save.changeFieldIsPartOfPrim(tf.getName(), t.getName(), tf.isPartOfPrimaryKey());
-      }
-      tf.saved();
+    }
+  }
+
+  /**
+   * Speichert Ã„nderungen fÃ¼r ein existierendes Feld.
+   *
+   * @param t
+   *          die Tabelle zu dem das Feld gehÃ¶rt
+   * @param tf
+   *          das Feld
+   */
+  private void saveFieldChanges(final ViewTable t, final ViewField tf) {
+    if (tf.isModifiedName()) {
+      pkcm.changeFieldName(tf, tf.getOldName());
+    }
+    if (tf.isModifiedReq()) {
+      save.changeFieldRequired(tf.getName(), t.getName(), tf.isRequired());
+    }
+    if (tf.isModifiedPrim()) {
+      pkcm.changeFieldIsPartOfPrim(tf.getName(), t.getName(), tf.isPartOfPrimaryKey());
+    }
+    if (tf.isModifiedDomain()) {
+      pkcm.changeFieldDataType(tf.getName(), tf.getDomain(), tf.getDomainLength(), t.getName());
+    }
+    if (tf.isModifiedComment()) {
+      save.saveComment(tf.getName(), t.getName(), tf.getComment());
     }
   }
 
@@ -175,11 +230,14 @@ public class SaveHandler {
    * Speichert Indizes.
    *
    * @param t
+   *          die Tabelle
+   * @param table
+   *          die Datenmodell Tabelle
    */
-  private void saveIndizies(final ViewTable t) {
-    for (final ViewIndex tf : t.indizes) {
+  private void saveIndizies(final ViewTable t, final Table table) {
+    for (final ViewIndex tf : t.getIndizesRaw()) {
       if (tf.isNewCreated()) {
-        save.insertNewIndex(new IndexImpl(tf.getName(), save.getTable(t.getName())));
+        save.insertNewIndex(new IndexImpl(tf.getName(), table));
       } else {
         if (tf.isModifiedName()) {
           save.changeIndexUnique(tf.getOldName(), t.getName(), tf.isUnique());
@@ -187,61 +245,32 @@ public class SaveHandler {
         }
       }
       if (tf.isModifiedDatafields()) {
-        changeDatafields(t, tf);
+        pkcm.changeDatafields(tf, table);
       }
       tf.saved();
     }
   }
 
   /**
-   * Ändert die Felder im Index
+   * Speichert den FremdschlÃ¼ssel.
    *
    * @param t
-   * @param tf
+   *          die Tabelle
+   * @param table
+   *          Datenmodell Tabelle
    */
-  private void changeDatafields(final ViewTable t, final ViewIndex tf) {
-    final Index newIndex = new IndexImpl(tf.getName(), save.getTable(t.getName()));
-    for (final Field f : tf.getFieldList()) {
-      if (!"".equals(tf.getAltName(f.getName()))) {
-        newIndex.addField(f, tf.getAltName(f.getName()));
-      } else {
-        newIndex.addField(f);
-      }
-    }
-    save.changeDataFields(newIndex);
-  }
-
-  /**
-   * Speichert den Fremdschlüssel.
-   *
-   * @param t
-   */
-  private void saveForeignKeys(final ViewTable t) {
-    for (final ViewForeignKey vfk : t.foreignKeys) {
+  private void saveForeignKeys(final ViewTable t, final Table table) {
+    for (final ViewForeignKey vfk : t.getForeignKeysRaw()) {
       if (vfk.isNewCreated()) {
-        saveNewForeignKey(t, vfk);
+        pkcm.saveNewForeignKey(vfk, table);
       } else if (vfk.isModifiedName()) {
         save.changeNodeNameFromTable(vfk.getOldName(), t.getName(), vfk.getName());
       }
 
-      if (vfk.isModified()) {
+      if (vfk.isModifiedRel()) {
         save.changeFkRelations(vfk.getName(), t.getName(), vfk.getRefTable().getName(), vfk.getIndex().getName());
       }
       vfk.saved();
     }
-  }
-
-  /**
-   * fügt einen neuen Fremdschlüssel ein
-   * 
-   * @param t
-   * @param vfk
-   */
-  private void saveNewForeignKey(final ViewTable t, final ViewForeignKey vfk) {
-    final Table dmt = save.getTable(t.getName());
-    final ForeignKey fk = new ForeignKeyImpl(vfk.getName(), dmt);
-    fk.setIndex(dmt.getIndizies().get(dmt.getIndizies().indexOf(vfk.getIndex())));
-    fk.setRefTable(save.getTable(vfk.getRefTable().getName()));
-    save.insertNewForeignKey(fk);
   }
 }

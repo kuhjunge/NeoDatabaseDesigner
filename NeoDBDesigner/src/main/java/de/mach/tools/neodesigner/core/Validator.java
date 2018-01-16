@@ -1,15 +1,39 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.core;
 
+import de.mach.tools.neodesigner.core.datamodel.Field;
 import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
 import de.mach.tools.neodesigner.core.datamodel.Node;
 import de.mach.tools.neodesigner.core.datamodel.Table;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Prüft ob ein Name oder eine Tabelle gewissen Regeln entspricht
+ * PrÃ¼ft ob ein Name oder eine Tabelle gewissen Regeln entspricht.
  *
  * @author Chris Deter
  *
@@ -18,30 +42,33 @@ public class Validator {
 
   private int maxTableNameLength = 18;
   private int maxColumnNameLength = 18;
+  private int uniqueUntilLength = 15;
   private final Save dm;
   private String lastError = "";
 
   /**
-   * Konstruktor für den Validator.
+   * Konstruktor fÃ¼r den Validator.
    *
    * @param maxTable
-   *          Maximale Größe für Tabellenamen
+   *          Maximale GrÃ¶ÃŸe fÃ¼r Tabellenamen
    * @param maxColumn
-   *          Maximale Größe für Spaltennamen
+   *          Maximale GrÃ¶ÃŸe fÃ¼r Spaltennamen
    * @param dm
    *          Datenmodel
    */
-  public Validator(final int maxTable, final int maxColumn, final Save dm) {
+  public Validator(final int maxTable, final int maxColumn, final int uniqueUntlLength, final Save dm) {
     maxTableNameLength = maxTable;
     maxColumnNameLength = maxColumn;
+    uniqueUntilLength = uniqueUntlLength;
     this.dm = dm;
   }
 
   /**
-   * Prüft ob ein reserved SQL Wort enthalten ist.
+   * PrÃ¼ft ob ein reserved SQL Wort enthalten ist.
    *
    * @param inputStr
-   * @return
+   *          der Input
+   * @return true wenn der String ein Element enthÃ¤lt
    */
   private boolean stringContainsItemFromList(final String inputStr) {
     final String str = String.format(Strings.VALIDATOR_WORDWRAP, inputStr.toUpperCase());
@@ -49,11 +76,13 @@ public class Validator {
   }
 
   /**
-   * Prüft ob ein Name in Ordnung ist
+   * PrÃ¼ft ob ein Name in Ordnung ist.
    *
    * @param name
+   *          der Name
    * @param length
-   * @return
+   *          die maximale LÃ¤nge
+   * @return true wenn der Name in Ordnung ist
    */
   private boolean isNameOkay(final String name, final int length) {
     if (!stringContainsItemFromList(name) && name.length() <= length && name.matches(Strings.NAME_REGEX)) {
@@ -76,12 +105,31 @@ public class Validator {
    *          der Name
    * @return True wenn der Name okay ist, ansonsten False
    */
-  public boolean validateName(final String name) {
+  boolean validateName(final String name) {
     return isNameOkay(name, maxTableNameLength);
   }
 
   /**
-   * prüft einen Namen auf Korrektheit.
+   * validiert einen Namen.
+   *
+   * @param name
+   *          der Name
+   * @return True wenn der Name okay ist, ansonsten False
+   */
+  public boolean validateFieldName(final String name) {
+    boolean ret = isNameOkay(name, maxColumnNameLength);
+    if (ret) {
+      final List<String> altName = dm.getFieldNameCase(name);
+      if (!altName.isEmpty() && !altName.contains(name)) {
+        ret = false;
+        lastError = String.format(Strings.VALIDATOR_NAMEWIHTANOTHERCASE, name, altName);
+      }
+    }
+    return ret;
+  }
+
+  /**
+   * prÃ¼ft einen Namen auf Korrektheit.
    *
    * @param t
    *          Die zu analyiserende Tabelle
@@ -89,12 +137,11 @@ public class Validator {
    */
   public boolean validateTable(final Table t, final boolean isNew) {
     boolean check = true;
-    if (t.getData().isEmpty()) {
+    if (t.getFields().isEmpty()) {
       lastError = Strings.VALIDATOR_TABLEHASNOFIELDS;
       check = false;
     }
     final List<Node> ln = new ArrayList<>();
-    ln.addAll(t.getData());
     ln.addAll(t.getIndizies());
     ln.add(t.getXpk());
     ln.addAll(t.getForeignKeys());
@@ -103,12 +150,13 @@ public class Validator {
         check = false;
       }
     }
+    check = checkFields(t, check);
     for (final ForeignKey i : t.getForeignKeys()) {
       if (i.getRefTable() == null) {
         lastError = String.format(Strings.VALIDATOR_REFTABLEISNULL, i.getName());
         check = false;
       }
-      if (i.getFieldList().isEmpty()) {
+      if (i.getIndex().getFieldList().isEmpty()) {
         lastError = String.format(Strings.VALIDATOR_INDEXHASNOFIELDS, i.getName());
         check = false;
       }
@@ -117,15 +165,104 @@ public class Validator {
       lastError = String.format(Strings.VALIDATOR_TABLEALREADYEXISTS);
       check = false;
     }
+    final Optional<Table> before = dm.getTable(t.getName());
+    // PrÃ¼ft ob ein Feld mit dem selben Namen bereits vorhanden ist
+    for (final Field f : t.getFields()) {
+      if (f.isPartOfPrimaryKey() && !(before.isPresent() && before.get().getXpk().getFieldList().contains(f))) {
+        for (final ForeignKey fk : t.getRefForeignKeys()) {
+          if (fk.getTable().getFields().contains(f)) {
+            lastError = String.format(Strings.VALIDATOR_PRIMAERFIELDNOTVALID);
+            check = false;
+          }
+        }
+        // PrÃ¼ft ob ein Feld entfernt wird, was bereits Teil eines Pks ist
+        if (!f.isPartOfPrimaryKey() && before.isPresent() && before.get().getXpk().getFieldList().contains(f)) {
+          for (final ForeignKey fk : t.getRefForeignKeys()) {
+            for (final Field fx : fk.getIndex().getFieldList()) {
+              if (fx.isPartOfPrimaryKey()) {
+                lastError = String.format(Strings.VALIDATOR_PRIMAERFIELDNOTVALID);
+                check = false;
+              }
+            }
+          }
+        }
+      }
+    }
+    return check;
+  }
+
+  private boolean checkFields(final Table t, final boolean c) {
+    boolean check = c;
+    for (final Field f : t.getFields()) {
+      if (!validateFieldName(f.getName().trim())) {
+        check = false;
+      }
+      int i = 0;
+      for (final Field cmpF : t.getFields()) {
+        if (cmpF.getName().equalsIgnoreCase(f.getName())) {
+          i++;
+        }
+      }
+      if (i > 1) {
+        lastError = Strings.VALIDATOR_DUPLICATEFIELDS;
+        check = false;
+      }
+    }
     return check;
   }
 
   /**
-   * Gibt den Fehler warum die Validierung gescheitert ist zurück.
-   * 
-   * @return
+   * Gibt die Information zurÃ¼ck ob eine Tabelle im Datenmodel vorhanden ist.
+   *
+   * @param name
+   *          der Tabelle
+   * @param length
+   *          die LÃ¤nge des Tabellennamens
+   * @return True wenn die Tabelle vorhanden ist
+   */
+  private boolean hasTable(final String name, final int length) {
+    if (name != null && name.length() > 1) {
+      final String shortCompareName = getShortName(name, length);
+      return dm.getTables().stream().anyMatch(t -> getShortName(t.getName(), length).equals(shortCompareName));
+    }
+    return false;
+  }
+
+  private String getShortName(final String name, final int length) {
+    return name.substring(0, name.length() > length - 1 ? length : name.length() - 1);
+  }
+
+  /**
+   * Gibt den Fehler warum die Validierung gescheitert ist zurÃ¼ck.
+   *
+   * @return den letzten Fehler
    */
   public String getLastError() {
     return lastError;
+  }
+
+  /**
+   * PrÃ¼ft ob der Name der Tabelle bereits existiert oder nicht eindeutig genug.
+   * ist
+   *
+   * @param newName
+   *          Name der Tabelle
+   * @return True wenn der Name einwandfrei ist
+   */
+  public boolean validateTableName(final String newName, final String oldName) {
+    boolean b = validateName(newName);
+    if (b && !(!hasTable(newName, uniqueUntilLength) || newName.compareTo(oldName) == 0)) {
+      lastError = String.format(Strings.VALIDATOR_TABLEISSIMILAR);
+      b = false;
+    }
+    return b;
+  }
+
+  public int getTableNameLength() {
+    return maxTableNameLength;
+  }
+
+  public int getNodeNameLength() {
+    return maxColumnNameLength;
   }
 }

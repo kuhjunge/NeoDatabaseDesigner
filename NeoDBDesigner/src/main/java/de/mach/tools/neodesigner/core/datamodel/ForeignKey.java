@@ -1,19 +1,41 @@
+/*******************************************************************************
+ * Copyright (C) 2017 Chris Deter
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+
 package de.mach.tools.neodesigner.core.datamodel;
 
 /**
- * Represnetiert einen Fremdschlüssel im Relationalen Datenbankmodel.
+ * Represnetiert einen FremdschlÃ¼ssel im Relationalen Datenbankmodel.
  *
  * @author Chris Deter
  *
  */
-public interface ForeignKey extends Index {
+public interface ForeignKey extends Node {
 
   /**
-   * Gibt die Referenztablle zurück.
+   * Gibt die Referenztablle zurÃ¼ck.
    *
-   * @return Referenz Tabelle (Tabelle die mit dieser Tabelle verknüpft ist)
+   * @return Referenz Tabelle (Tabelle die mit dieser Tabelle verknÃ¼pft ist)
    */
-  public Table getRefTable();
+  Table getRefTable();
 
   /**
    * setzt die Referenz Tabelle.
@@ -21,20 +43,20 @@ public interface ForeignKey extends Index {
    * @param refTable
    *          die Referenz Tabelle
    */
-  public void setRefTable(Table refTable);
+  void setRefTable(Table refTable);
 
   /**
-   * gibt den Index zu diesem FK zurück.
+   * gibt den Index zu diesem FK zurÃ¼ck.
    *
-   * @return Index des Fremdschlüssels
+   * @return Index des FremdschlÃ¼ssels
    */
-  public Index getIndex();
+  Index getIndex();
 
   /**
-   * setzt den Index des Fremdschlüssels
+   * setzt den Index des FremdschlÃ¼ssels
    *
    * @param i
-   *          der Index des Fremdschlüssels.
+   *          der Index des FremdschlÃ¼ssels.
    */
-  public void setIndex(Index i);
+  void setIndex(Index i);
 }

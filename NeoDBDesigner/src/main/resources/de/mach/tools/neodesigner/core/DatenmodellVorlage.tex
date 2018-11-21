@@ -1,0 +1,172 @@
+\documentclass{scrartcl}
+\usepackage[a4paper, total={190mm, 260mm}]{geometry}
+\usepackage[utf8]{inputenc}
+% Schoenere Schriftart laden
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+% Deutsche Silbentrennung verwenden
+\usepackage[ngerman]{babel}
+\usepackage[table]{xcolor}
+\usepackage{multicol}
+\usepackage{tabularx}
+\usepackage{tikz}
+\usepackage{imakeidx}
+% Bessere Unterstuetzung fuer PDF-Features
+\usepackage[breaklinks=true,hidelinks]{hyperref}
+\usepackage{longtable}
+% Abmessungen der Seite
+\geometry{
+  left=1cm,
+  right=1cm,
+  top=1cm,
+  bottom=2.5cm,
+}
+% Überschriften enger 
+\RedeclareSectionCommands[
+  beforeskip=-.5\baselineskip,
+  afterskip=.25\baselineskip
+]{section,subsection}
+% Inhaltsverzeichnis einrücken
+\RedeclareSectionCommand[tocnumwidth=12mm]{subsection}
+\newcommand\Tstrut{\rule{0pt}{0.5ex}}
+\makeindex[title=Tabellenindex,intoc]
+% dreispaltiger Index am Ende
+\makeatletter
+\renewenvironment{theindex}
+  {\if@twocolumn
+      \@restonecolfalse
+   \else
+      \@restonecoltrue
+   \fi
+   \setlength{\columnseprule}{0pt}
+   \setlength{\columnsep}{35pt}
+   \begin{multicols}{3}[\section{\indexname}]
+   \markboth{\MakeUppercase\indexname}
+            {\MakeUppercase\indexname}
+   \thispagestyle{plain}
+   \setlength{\parindent}{0pt}
+   \setlength{\parskip}{0pt plus 0.3pt}
+   \relax
+   \let\item\@idxitem}
+  {\end{multicols}\if@restonecol\onecolumn\else\clearpage\fi}
+\makeatother
+
+\title{$title}
+\author{$author}
+\date{\copyright\today}
+
+\begin{document}
+\maketitle
+\begin{multicols}{2}
+\tableofcontents
+\end{multicols}
+\clearpage
+#foreach( $section in $datamodel.getSortedSections() )
+% Für jede Sektion eine neue Seite erstellen
+\newpage
+#set( $newpage = false )
+\section{$datamodel.getSectionOrPageTitle($section)}
+#foreach( $page in $datamodel.getSortedPages($section) )
+% eine neue Seite erstellen
+#if( !$newpage )
+#set( $newpage = true )
+#else
+\newpage
+#end
+\subsection{$datamodel.getSectionOrPageTitle($page)}
+\begin{center}
+\begin{multicols}{3}
+\begingroup
+\scriptsize
+#foreach( $table in $datamodel.getSortedTables($page))
+% Alle Tabellen einer Seite einfügen
+\label{$table}
+\index{$table}
+\begin{tikzpicture}
+\rowcolors{2}{white}{gray!25} 
+\setlength\arrayrulewidth{1pt}
+\node (table) [inner sep=0pt] {
+\begin{tabularx}{59mm}{Xp{8mm}p{4mm}p{3mm}p{4mm}}
+\multicolumn{5}{c}{\textbf{$table\Tstrut}} \\
+\hline
+#set( $strut = "\Tstrut" )
+% Primary Key Felder am Anfang der Tabelle auflisten
+#foreach( $column in $datamodel.getPrimaryKeyColumns($page, $table))
+#if( $column.isNullable() )
+#set( $nullable = "" )
+#else
+#set( $nullable = "REQ." )
+#end
+#if( $column.isForeignKey() )
+#set( $isFK = "\scalebox{.5}[1.0]{\hyperref[$column.getForeignKeyTableName()]{(FK)}}" )
+#else
+#set( $isFK = "" )
+#end
+#if( $column.hasIndex() )
+#set( $index = "\scalebox{.5}[1.0]{(" + $column.getIndexName() + ")}" )
+#else
+#set( $index = "" )
+#end
+\scalebox{.7}[1.0]{$column.getName()} & \scalebox{.7}[1.0]{$column.getDomain()} & \scalebox{.5}[1.0]{$nullable} & $isFK & $index $strut \\
+#set( $strut = "" )				
+#end
+#if( !$datamodel.getNonPrimaryKeyColumns($page, $table).isEmpty())
+\hline
+#set( $strut = "\Tstrut" )
+#end
+% Alle nicht Primärfelder auflisten
+#foreach( $column in $datamodel.getNonPrimaryKeyColumns($page, $table))
+#if( $column.isNullable() )
+#set( $nullable = "" )
+#else
+#set( $nullable = "REQ." )
+#end
+#if( $column.isForeignKey() )
+#set( $isFK = "\scalebox{.5}[1.0]{\hyperref[$column.getForeignKeyTableName()]{(FK)}}" )
+#else
+#set( $isFK = "" )
+#end
+#if( $column.hasIndex() )
+#set( $index = "\scalebox{.5}[1.0]{(" + $column.getIndexName() + ")}" )
+#else
+#set( $index = "" )
+#end
+\scalebox{.7}[1.0]{$column.getName()} & \scalebox{.7}[1.0]{$column.getDomain()} & \scalebox{.5}[1.0]{$nullable} & $isFK & $index $strut \\
+#set( $strut = "" )
+#end
+\end{tabularx}
+};
+\draw [rounded corners=.5em] (table.north west) rectangle (table.south east);
+\end{tikzpicture}
+\vspace{2mm}
+#end
+\endgroup
+\end{multicols}
+\end{center}
+#end
+#end
+\newpage
+\section{Constraints}
+\begin{small}
+\begin{center}
+ \rowcolors{2}{white}{gray!25}
+ \footnotesize
+ \begin{longtable}{ l  l  l  l  r }
+  Constraint & Tabelle & Referenz Tabelle & Spalte & Ordnungsziffer \\
+  \hline
+#foreach( $fk in $datamodel.getFkList() )
+#if($fk.getTableName().length()>0)
+#set( $txt_tbl = "\hyperref[$fk.getTableName()]{$fk.getTableName()}" )
+#set( $txt_reftbl = "\hyperref[$fk.getRefTableName()]{$fk.getRefTableName()}" )
+#else
+#set( $txt_tbl = "")    
+#set( $txt_reftbl = "") 
+#end
+  $fk.getForeignkeyName() & $txt_tbl & $txt_reftbl & $fk.getColumnName() & $fk.getOrder() \\
+#end
+ \end{longtable}
+\end{center}
+\end{small}
+\newpage
+\printindex
+\end{document}

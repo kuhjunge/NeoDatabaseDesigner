@@ -107,7 +107,7 @@ generateGrammarSource {
 compileJava.dependsOn generateGrammarSource
 
 // ------- Include Artifact publishing for MACH Toolchain -------
-apply from: 'publish-mach.gradle'
+// apply from: 'publish-mach.gradle'
 
 // ------- Code Formatter SETUP -------
 spotless {

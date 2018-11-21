@@ -1,4 +1,20 @@
+/* Copyright (C) 2018 Chris Deter Permission is hereby granted, free of charge, to any person obtaining a copy of this
+ * software and associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+ * Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The
+ * above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+ * Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+ * LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE. */
+
 package de.mach.tools.neodesigner.core.nimport;
+
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 import de.mach.tools.neodesigner.core.Strings;
 import de.mach.tools.neodesigner.core.datamodel.Domain;
@@ -22,16 +38,10 @@ import de.mach.tools.neodesigner.core.nimport.antlrsql.SQLParser.CreUniqueIndexC
 import de.mach.tools.neodesigner.core.nimport.antlrsql.SQLParser.CrefieldNameListContext;
 import de.mach.tools.neodesigner.core.nimport.antlrsql.SQLParser.FieldnameContext;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
-/**
- * ANTLR Import Listener für die Verarbeitung des input SQLs.
+/** ANTLR Import Listener für die Verarbeitung des input SQLs.
  *
- * @author Chris Deter
- *
- */
+ * @author Chris Deter */
 class SqlImportListener extends SQLBaseListener {
   List<Table> tables = new ArrayList<>();
   private Table actualTable;
@@ -40,6 +50,15 @@ class SqlImportListener extends SQLBaseListener {
   private String category = "";
   private String comment = "";
   private final List<Field> tempFields = new ArrayList<>();
+
+  /** Erstellt einen Index.
+   *
+   * @param name Name des Indexes
+   * @param tablename Name der übergeordneten Tabelle */
+  private void createIndex(final String name, final String tablename) {
+    actualTable = getActualTable(tablename);
+    actualIndex = new IndexImpl(name, actualTable);
+  }
 
   @Override
   public void enterCreCategory(final CreCategoryContext ctx) {
@@ -56,60 +75,26 @@ class SqlImportListener extends SQLBaseListener {
   }
 
   @Override
-  public void enterCreTable(final CreTableContext ctx) {
-    actualTable = new TableImpl(ctx.tablename().getText());
-    if (category.length() > 0) {
-      actualTable.setCategory(category);
-      actualTable.setComment(comment);
-    }
-    category = "";
-  }
-
-  @Override
-  public void exitCreTable(final CreTableContext ctx) {
-    tables.add(actualTable);
-    actualTable = null;
-  }
-
-  @Override
   public void enterCreField(final CreFieldContext ctx) {
     final Domain d = UtilImport.oracleTypeToDomain(ctx.type().getText());
     final FieldImpl f = new FieldImpl(ctx.fieldname().getText(), d.getDomain(), d.getDomainlength(),
-        ctx.isNull() == null, Strings.EMPTYSTRING, actualTable);
+                                      ctx.isNull() == null, Strings.EMPTYSTRING, actualTable);
     actualTable.addField(f);
-  }
-
-  @Override
-  public void enterCrePrimKey(final CrePrimKeyContext ctx) {
-    createIndex(ctx.indexname().getText(), ctx.tablename().getText());
-    actualTable.setXpk(actualIndex);
   }
 
   @Override
   public void enterCrefieldNameList(final CrefieldNameListContext ctx) {
     for (final FieldnameContext fnc : ctx.fieldname()) {
       final Optional<Field> field = actualTable.getField(fnc.getText());
-      if (field.isPresent()) {
+      field.ifPresent(field1 -> {
         if (actualIndex != null) {
-          actualIndex.addField(field.get());
-        } else {
-          tempFields.add(field.get());
+          actualIndex.addField(field1);
         }
-      }
+        else {
+          tempFields.add(field1);
+        }
+      });
     }
-  }
-
-  @Override
-  public void enterCreIndex(final CreIndexContext ctx) {
-    createIndex(ctx.indexname().getText(), ctx.tablename().getText());
-    actualTable.getIndizies().add(actualIndex);
-  }
-
-  @Override
-  public void enterCreUniqueIndex(final CreUniqueIndexContext ctx) {
-    createIndex(ctx.indexname().getText(), ctx.tablename().getText());
-    actualTable.getIndizies().add(actualIndex);
-    actualIndex.setUnique(true);
   }
 
   @Override
@@ -128,41 +113,54 @@ class SqlImportListener extends SQLBaseListener {
   }
 
   @Override
+  public void enterCreIndex(final CreIndexContext ctx) {
+    createIndex(ctx.indexname().getText(), ctx.tablename().getText());
+    actualTable.getIndizies().add(actualIndex);
+  }
+
+  @Override
+  public void enterCrePrimKey(final CrePrimKeyContext ctx) {
+    createIndex(ctx.indexname().getText(), ctx.tablename().getText());
+    actualTable.setXpk(actualIndex);
+  }
+
+  @Override
+  public void enterCreTable(final CreTableContext ctx) {
+    actualTable = new TableImpl(ctx.tablename().getText());
+    if (category.length() > 0) {
+      actualTable.setCategory(category);
+      actualTable.setComment(comment);
+    }
+    category = "";
+  }
+
+  @Override
+  public void enterCreUniqueIndex(final CreUniqueIndexContext ctx) {
+    createIndex(ctx.indexname().getText(), ctx.tablename().getText());
+    actualTable.getIndizies().add(actualIndex);
+    actualIndex.setUnique(true);
+  }
+
+  @Override
   public void exitCreForeignKey(final CreForeignKeyContext ctx) {
-    final List<Field> primKeyFields = actualFk.getRefTable().getXpk().getFieldList();
     UtilImport.setFieldForeignkeyRelation(actualFk, tempFields);
     for (final Field f : actualFk.getIndex().getFieldList()) {
       if (f.getDomain().equals(DomainId.STRING) && f.getDomainLength() == 20) {
         f.setDomain(DomainId.LOOKUP);
       }
-      actualFk.getIndex().setAltName(f.getName(),
-          UtilImport.getFieldFromRefField(primKeyFields, f, tempFields.indexOf(f)).getName());
-      // TODO: Test der diese Funktion prüft
     }
     tempFields.clear();
   }
 
-  /**
-   * Erstellt einen Index.
-   *
-   * @param name
-   *          Name des Indexes
-   * @param tablename
-   *          Name der übergeordneten Tabelle
-   */
-  private void createIndex(final String name, final String tablename) {
-    actualTable = getActualTable(tablename);
-    final Index index = new IndexImpl(name, actualTable);
-    actualIndex = index;
+  @Override
+  public void exitCreTable(final CreTableContext ctx) {
+    tables.add(actualTable);
+    actualTable = null;
   }
 
-  /**
-   * Läd mithilfe des Tabellennamens die Tabelle aus der Liste der importierten
-   * Tabellen.
+  /** Läd mithilfe des Tabellennamens die Tabelle aus der Liste der importierten Tabellen.
    *
-   * @param tablename
-   *          Der Tabellenname
-   */
+   * @param tablename Der Tabellenname */
   private Table getActualTable(final String tablename) {
     final Table table = new TableImpl(tablename);
     return tables.get(tables.indexOf(table));

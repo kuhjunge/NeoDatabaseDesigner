@@ -1,30 +1,17 @@
-/*******************************************************************************
- * Copyright (C) 2017 Chris Deter
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- ******************************************************************************/
+/* Copyright (C) 2018 Chris Deter Permission is hereby granted, free of charge, to any person obtaining a copy of this
+ * software and associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+ * Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The
+ * above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+ * Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+ * LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE. */
 
 package de.mach.tools.neodesigner.ui.graph;
 
-import de.mach.tools.neodesigner.core.Model;
-import de.mach.tools.neodesigner.core.datamodel.Table;
-import de.mach.tools.neodesigner.core.graph.GraphModel;
+
 import java.util.Map;
 import java.util.Map.Entry;
 import javafx.embed.swing.SwingNode;
@@ -43,7 +30,6 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 
 import javax.swing.JComponent;
-
 import javax.swing.SwingUtilities;
 
 import org.graphstream.graph.Graph;
@@ -51,12 +37,14 @@ import org.graphstream.graph.implementations.MultiGraph;
 import org.graphstream.ui.view.View;
 import org.graphstream.ui.view.Viewer;
 
-/**
- * Bindet den Graphen in die GUI ein.
+import de.mach.tools.neodesigner.core.Model;
+import de.mach.tools.neodesigner.core.datamodel.Table;
+import de.mach.tools.neodesigner.core.graph.GraphModel;
+
+
+/** Bindet den Graphen in die GUI ein.
  *
- * @author Chris Deter
- *
- */
+ * @author Chris Deter */
 public class DisplayGraph {
   private static Viewer viewer = null;
 
@@ -80,14 +68,14 @@ public class DisplayGraph {
   }
 
   private void showGraph(final Window w, final Graph g, final String windowTitle, final boolean isAutoLayout,
-      final Map<String, Color> legend) {
+                         final Map<String, Color> legend) {
     final SwingNode swingNode = new SwingNode();
     DisplayGraph.createSwingContent(swingNode, g, isAutoLayout);
     setUpWindow(w, windowTitle, swingNode, isAutoLayout, legend);
   }
 
   private void setUpWindow(final Window w, final String name, final SwingNode swingNode, final boolean isAutoLayout,
-      final Map<String, Color> legend) {
+                           final Map<String, Color> legend) {
     final HBox hbox = new HBox();
     final ScrollPane crPan = new ScrollPane();
     final VBox vbox = new VBox();
@@ -128,7 +116,8 @@ public class DisplayGraph {
     chk.selectedProperty().addListener(event -> {
       if (chk.isSelected()) {
         DisplayGraph.viewer.enableAutoLayout();
-      } else {
+      }
+      else {
         DisplayGraph.viewer.disableAutoLayout();
       }
     });
@@ -149,7 +138,8 @@ public class DisplayGraph {
       final View view = DisplayGraph.viewer.addDefaultView(false);
       if (enableAutoLayout) {
         DisplayGraph.viewer.enableAutoLayout();
-      } else {
+      }
+      else {
         DisplayGraph.viewer.disableAutoLayout();
       }
       DisplayGraph.viewer.setCloseFramePolicy(Viewer.CloseFramePolicy.EXIT);

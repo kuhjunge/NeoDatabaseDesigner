@@ -1,51 +1,34 @@
+/* Copyright (C) 2018 Chris Deter Permission is hereby granted, free of charge, to any person obtaining a copy of this
+ * software and associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+ * Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The
+ * above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+ * Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+ * LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE. */
+
 package de.mach.tools.neodesigner.core;
+
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import de.mach.tools.neodesigner.core.datamodel.Domain.DomainId;
 import de.mach.tools.neodesigner.core.datamodel.Field;
 import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
 import de.mach.tools.neodesigner.core.datamodel.Index;
 import de.mach.tools.neodesigner.core.datamodel.Table;
-import de.mach.tools.neodesigner.core.datamodel.Domain.DomainId;
 import de.mach.tools.neodesigner.core.datamodel.impl.FieldImpl;
 import de.mach.tools.neodesigner.core.datamodel.impl.ForeignKeyImpl;
 import de.mach.tools.neodesigner.core.datamodel.impl.IndexImpl;
 import de.mach.tools.neodesigner.core.datamodel.impl.TableImpl;
 
-public class TestUtil {
-  public static List<Table> getTableList() {
-    final List<Table> lt = new ArrayList<>();
-    for (int j = 0; j < 5; j++) {
-      final Table t = new TableImpl("Table" + j);
-      t.setCategory("1," + j);
-      final Field f = new FieldImpl("Feld" + j, DomainId.STRING, 10, true, "", t);
-      final Field f2 = new FieldImpl("FeldZwei" + j, DomainId.AMOUNT, 0, true, "", t);
-      final Field f3 = new FieldImpl("FeldDrei" + j, DomainId.DATE, 0, false, "", t);
-      final Index i = new IndexImpl("XIF10" + j + "BlaBlub", t);
-      final Index i2 = new IndexImpl("XIE10" + j + "TestIndex", t);
-      final Index xpk = new IndexImpl("XPKTable" + j, t);
-      xpk.addField(f2);
-      final ForeignKey fk = new ForeignKeyImpl("R_10" + j, t);
-      t.addField(f);
-      t.addField(f2);
-      t.addField(f3);
-      i.addField(f);
-      i2.addField(f);
-      fk.setIndex(i);
-      fk.setRefTable(t);
-      fk.getIndex().setAltName("Feld" + j, "FeldZwei" + j);
-      t.getIndizies().add(i2);
-      t.getIndizies().add(i);
-      t.getForeignKeys().add(fk);
-      t.setXpk(xpk);
-      lt.add(t);
-    }
-    return lt;
-  }
 
+public class TestUtil {
   public static Map<String, String> getCatList() {
     final Map<String, String> categoryToName = new HashMap<>();
     categoryToName.put("0,0", "Cat0");
@@ -83,7 +66,7 @@ public class TestUtil {
     reft.addField(new FieldImpl("FeldZwei", DomainId.AMOUNT, 0, true, "", t));
     reft.getField("FeldZwei").get().setPartOfPrimaryKey(true);
     reft.getRefForeignKeys().add(fk);
-    fk.getIndex().setAltName("Feld", "FeldZwei");
+    // fk.getIndex().setAltName("Feld", "FeldZwei");
     t.getIndizies().add(i2);
     t.getIndizies().add(i);
     t.getForeignKeys().add(fk);
@@ -91,4 +74,34 @@ public class TestUtil {
     return t;
   }
 
+  public static List<Table> getTableList() {
+    final List<Table> lt = new ArrayList<>();
+    for (int j = 0; j < 5; j++) {
+      final Table t = new TableImpl("Table" + j);
+      t.setCategory("1," + j);
+      final Field f = new FieldImpl("Feld" + j, DomainId.STRING, 10, true, "", t);
+      final Field f2 = new FieldImpl("FeldZwei" + j, DomainId.AMOUNT, 0, true, "", t);
+      final Field f3 = new FieldImpl("FeldDrei" + j, DomainId.DATE, 0, false, "", t);
+      final Index i = new IndexImpl("XIF10" + j + "BlaBlub", t);
+      final Index i2 = new IndexImpl("XIE10" + j + "TestIndex", t);
+      final Index xpk = new IndexImpl("XPKTable" + j, t);
+      xpk.addField(f2);
+      final ForeignKey fk = new ForeignKeyImpl("R_10" + j, t);
+      t.addField(f);
+      t.addField(f2);
+      t.addField(f3);
+      i.addField(f);
+      i2.addField(f);
+      fk.setIndex(i);
+      fk.setRefTable(t);
+      fk.setFkOrder(f, 1);
+      // fk.getIndex().setAltName("Feld" + j, "FeldZwei" + j);
+      t.getIndizies().add(i2);
+      t.getIndizies().add(i);
+      t.getForeignKeys().add(fk);
+      t.setXpk(xpk);
+      lt.add(t);
+    }
+    return lt;
+  }
 }

@@ -1,40 +1,22 @@
-/*******************************************************************************
- * Copyright (C) 2017 Chris Deter
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- ******************************************************************************/
+/* Copyright (C) 2018 Chris Deter Permission is hereby granted, free of charge, to any person obtaining a copy of this
+ * software and associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+ * Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The
+ * above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+ * Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+ * LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE. */
 
 package de.mach.tools.neodesigner.ui.controller;
 
-import de.mach.tools.neodesigner.core.datamodel.Field;
-import de.mach.tools.neodesigner.core.datamodel.Index;
-import de.mach.tools.neodesigner.core.datamodel.Index.Type;
-import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewIndex;
-import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewTable;
-import de.mach.tools.neodesigner.ui.Strings;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -51,17 +33,21 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
-
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 
-/**
- * Diese Klasse zeigt einen Editor für Indizes.
+import de.mach.tools.neodesigner.core.datamodel.Field;
+import de.mach.tools.neodesigner.core.datamodel.Index;
+import de.mach.tools.neodesigner.core.datamodel.Index.Type;
+import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewIndex;
+import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewTable;
+import de.mach.tools.neodesigner.ui.Strings;
+
+
+/** Diese Klasse zeigt einen Editor für Indizes.
  *
- * @author Chris Deter
- *
- */
+ * @author Chris Deter */
 public class IndexRelEditorController implements Initializable {
   private ViewTable table;
   private ViewIndex index;
@@ -82,35 +68,27 @@ public class IndexRelEditorController implements Initializable {
   @FXML
   private ListView<Field> listViewIndexData;
 
-  /**
-   * Der Starter für das Index Bearbeitungsfenster.
+  /** Der Starter für das Index Bearbeitungsfenster.
    *
-   * @param t
-   *          Die Tabelle
-   * @param i
-   *          der Index
-   * @param primaryStage
-   *          das Fenster
-   * @param tvi
-   *          Alle Indizes
-   * @param isNew
-   *          boolean ob der Index neu erstellt ist
-   */
+   * @param t Die Tabelle
+   * @param i der Index
+   * @param primaryStage das Fenster
+   * @param tvi Alle Indizes
+   * @param isNew boolean ob der Index neu erstellt ist */
   public static void startIndexRelEditor(final ViewTable t, final ViewIndex i, final Window primaryStage,
-      final TableView<ViewIndex> tvi, final boolean isNew) {
+                                         final TableView<ViewIndex> tvi, final boolean isNew) {
     if (i != null) {
       if (i.getType() == Index.Type.XAK || i.getType() == Index.Type.XIE || i.getType() == Index.Type.XPK
           || i.getType() == Index.Type.XIF) {
         IndexRelEditorController.startEditor(t, i, primaryStage, tvi, isNew);
-      } else {
+      }
+      else {
         IndexRelEditorController.openInformation();
       }
     }
   }
 
-  /**
-   * öffnet einen Alert Dialog.
-   */
+  /** öffnet einen Alert Dialog. */
   private static void openInformation() {
     final Alert alert = new Alert(AlertType.INFORMATION);
     alert.setTitle(Strings.ALTITLE_RELEDITOR);
@@ -118,23 +96,15 @@ public class IndexRelEditorController implements Initializable {
     alert.showAndWait();
   }
 
-  /**
-   * Startet den Index Editor (nachdem die Prüfung ob der Index kompatibel ist,
-   * abgeschlossen ist).
+  /** Startet den Index Editor (nachdem die Prüfung ob der Index kompatibel ist, abgeschlossen ist).
    *
-   * @param t
-   *          die Tabelle
-   * @param i
-   *          der Index
-   * @param primaryStage
-   *          die Stage
-   * @param tvi
-   *          die Tabelle im View mit dem Index
-   * @param isNew
-   *          True wenn neu erstellter Index
-   */
+   * @param t die Tabelle
+   * @param i der Index
+   * @param primaryStage die Stage
+   * @param tvi die Tabelle im View mit dem Index
+   * @param isNew True wenn neu erstellter Index */
   private static void startEditor(final ViewTable t, final ViewIndex i, final Window primaryStage,
-      final TableView<ViewIndex> tvi, final boolean isNew) {
+                                  final TableView<ViewIndex> tvi, final boolean isNew) {
     IndexRelEditorController relContrl;
     Parent root;
     try {
@@ -150,7 +120,8 @@ public class IndexRelEditorController implements Initializable {
       stage.initOwner(primaryStage.getScene().getWindow());
       stage.getIcons().add(new Image(IndexRelEditorController.class.getResourceAsStream(Strings.FXML_ICON)));
       stage.show();
-    } catch (final IOException e) {
+    }
+    catch (final IOException e) {
       IndexRelEditorController.LOG.log(Level.SEVERE, e.toString(), e);
     }
   }
@@ -196,19 +167,12 @@ public class IndexRelEditorController implements Initializable {
     stage.close();
   }
 
-  /**
-   * Setzt die Daten in den Controller.
+  /** Setzt die Daten in den Controller.
    *
-   * @param ta
-   *          die ViewTabelle
-   * @param in
-   *          der zu bearbeitende ViewIndex
-   * @param tvin
-   *          die GUI Liste in welcher ein neuer Index aufgenommen wird beim
-   *          speichern
-   * @param isNew
-   *          true wenn es sich um einen neu erstellten index handelt
-   */
+   * @param ta die ViewTabelle
+   * @param in der zu bearbeitende ViewIndex
+   * @param tvin die GUI Liste in welcher ein neuer Index aufgenommen wird beim speichern
+   * @param isNew true wenn es sich um einen neu erstellten index handelt */
   private void setData(final ViewTable ta, final ViewIndex in, final TableView<ViewIndex> tvin, final boolean isNew) {
     table = ta;
     index = in;
@@ -227,7 +191,8 @@ public class IndexRelEditorController implements Initializable {
     choiceBoxType.setTooltip(tooltip);
     choiceBoxType.getSelectionModel().selectedItemProperty()
         .addListener((final ObservableValue<? extends Type> observable, final Type oldValue,
-            final Type newValue) -> textFieldName.setText(newValue.name() + textFieldName.getText().substring(3)));
+                      final Type newValue) -> textFieldName
+                          .setText(newValue.name() + textFieldName.getText().substring(3)));
 
     if (index.hasFk()) {
       choiceBoxType.disableProperty().set(true);
@@ -236,9 +201,7 @@ public class IndexRelEditorController implements Initializable {
     }
   }
 
-  /**
-   * läd die Felder aus den Index in die GUI.
-   */
+  /** läd die Felder aus den Index in die GUI. */
   private void loadItems() {
     listViewFields.setItems(FXCollections.observableArrayList(table.getFields()));
     listViewFields.getSelectionModel().selectFirst();

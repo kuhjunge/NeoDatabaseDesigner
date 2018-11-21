@@ -1,37 +1,21 @@
-/*******************************************************************************
- * Copyright (C) 2017 Chris Deter
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- ******************************************************************************/
+/* Copyright (C) 2018 Chris Deter Permission is hereby granted, free of charge, to any person obtaining a copy of this
+ * software and associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+ * Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The
+ * above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+ * Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+ * LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE. */
 
 package de.mach.tools.neodesigner.ui;
 
-/**
- * Strings werden hier hin ausgelagert.
- *
- * @author Chris Deter
- *
- */
-public final class Strings {
-  private Strings() {
-  }
 
+/** Strings werden hier hin ausgelagert.
+ *
+ * @author Chris Deter */
+public final class Strings {
   public static final String EMPTYSTRING = "";
 
   static final String RELNAME_XPK = "XPK";
@@ -43,14 +27,16 @@ public final class Strings {
   public static final String NAME_NEWTABLE = "newTable";
 
   public static final String SOFTWAREINFO = "Neo Database Manager" + Strings.EOL
-      + "Icon: http://www.iconarchive.com/show/blue-bits-icons-by-icojam/database-settings-icon.html" + Strings.EOL
-      + Strings.EOL + "Copyright (c) 2017 Chris Deter (MIT-License)";
+                                            + "Icon: http://www.iconarchive.com/show/blue-bits-icons-by-icojam/database-settings-icon.html"
+                                            + Strings.EOL + Strings.EOL
+                                            + "Copyright (c) 2017 Chris Deter (MIT-License)";
 
-  public static final String EOL = "\r\n";
-  public static final String VERSION = "This Software uses:" + Strings.EOL + "ANTLR 4.7" + Strings.EOL
-      + "Controlsfx 8.40.14" + Strings.EOL + "Graphstream 1.3" + Strings.EOL + "Neo4J Java Driver 1.5.0"
-      + "(Compatible with 3.3, 3.2, 3.1, 3.0 neo4j servers)" + Strings.EOL + Strings.EOL + "Version: 1.2.0";
+  public static final String EOL = "\n";
 
+  public static final String VERSION = "This Software uses:" + Strings.EOL + "ANTLR 4.7.1" + Strings.EOL
+                                       + "Controlsfx 8.40.14" + Strings.EOL + "Graphstream 1.3" + Strings.EOL
+                                       + "Neo4J Java Driver 1.7" + " (Compatible with 3.1 - 3.5 neo4j servers)"
+                                       + Strings.EOL + Strings.EOL + "Version: 1.2.5";
   private static final String FXML_PATH = "/de/mach/tools/neodesigner/ui/";
 
   public static final String FXML_ICON = Strings.FXML_PATH + "db.png";
@@ -112,7 +98,8 @@ public final class Strings {
   public static final String ALTEXT_DATABASEERR_UNEX_ERR = "There was an " + "unexpected error while importing";
 
   public static final String INDEXTOOLTIP = "Primärschlüssel: „XPK“\n" + "Fremschlüssel: „R“\n"
-      + "Indizes für Fremdschlüssel: „XIF“\n" + "Eindeutige Indizes: „XAK“\n" + "Einfache Indizes: „XIE“\n";
+                                            + "Indizes für Fremdschlüssel: „XIF“\n" + "Eindeutige Indizes: „XAK“\n"
+                                            + "Einfache Indizes: „XIE“\n";
 
   public static final String NAME_SECONDELEMENT = "_new";
 
@@ -133,7 +120,7 @@ public final class Strings {
   static final String ALTITLE_SAVEERR = "Save Error";
 
   static final String ALTEXT_SAVEERR = "Saving failed! This " + "Table is not valid or the Database is offline."
-      + " Please solve following Error:";
+                                       + " Please solve following Error:";
 
   static final String NAME_INDEXES = "Indexes"; // Deutsch: indizes
 
@@ -169,7 +156,7 @@ public final class Strings {
 
   static final String UNDERSCORE = "_";
 
-  public static final String STAR = "*";
+  static final String STAR = "*";
 
   public static final String NAME_REFTABLE = "Ref Table";
 
@@ -180,10 +167,10 @@ public final class Strings {
   public static final String ALTITLE_DATABASENOTEMPTY = "Database is not empty!";
 
   public static final String ALTEXT_DATABASEERR_NOTEMPTY = "The database already contains information. Importing "
-      + "another datamodel could mess up the database.";
+                                                           + "another datamodel could mess up the database.";
 
   public static final String ALTEXT_CLEANDATABASE = "Do you want to clean the database before importing a new "
-      + "datamodel?";
+                                                    + "datamodel?";
 
   public static final String TITLE_EXPORTSQL = "Choose Export SQL File";
 
@@ -216,7 +203,7 @@ public final class Strings {
   public static final String TITLE_DISPLAYCATGRAPH = "Display Cateogry Graph";
 
   public static final String ALTITLE_DISPLAYCATGRAPH = "This graph contains all categories that start with the search term. "
-      + "You can define more than one category with semicolon.";
+                                                       + "You can define more than one category with semicolon.";
 
   public static final String ALTEXT_DISPLAYCATGRAPH = "Please enter the search term:";
 
@@ -250,6 +237,8 @@ public final class Strings {
 
   public static final String UPDATETEXT_RUN2 = "Lauf 2 PDF Erstellung";
 
+  public static final String UPDATETEXT_RUN3 = "Lauf 3 PDF Erstellung";
+
   public static final String UPDATETEXT_COPYPDF = "PDF erfolgreich erstellt - Kopiere PDF zum Zielort";
 
   public static final String UPDATETEXT_CLEAN = "Räume Auf!";
@@ -280,4 +269,5 @@ public final class Strings {
 
   public static final String SPACERFORINFO = ":\t";
 
+  private Strings() {}
 }

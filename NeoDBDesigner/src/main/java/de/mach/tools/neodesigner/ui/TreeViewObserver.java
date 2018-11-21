@@ -1,39 +1,21 @@
-/*******************************************************************************
- * Copyright (C) 2017 Chris Deter
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- ******************************************************************************/
+/* Copyright (C) 2018 Chris Deter Permission is hereby granted, free of charge, to any person obtaining a copy of this
+ * software and associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+ * Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The
+ * above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+ * Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+ * LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE. */
 
 package de.mach.tools.neodesigner.ui;
 
-import de.mach.tools.neodesigner.core.Model;
-import de.mach.tools.neodesigner.core.datamodel.Field;
-import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
-import de.mach.tools.neodesigner.core.datamodel.Index;
-import de.mach.tools.neodesigner.core.datamodel.Table;
-import de.mach.tools.neodesigner.ui.controller.NeoDbDesignerController;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
-
 import javafx.application.Platform;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
@@ -42,12 +24,17 @@ import javafx.scene.control.TreeView;
 import org.controlsfx.control.textfield.AutoCompletionBinding;
 import org.controlsfx.control.textfield.TextFields;
 
-/**
- * Observer für den Treeview.
+import de.mach.tools.neodesigner.core.Model;
+import de.mach.tools.neodesigner.core.datamodel.Field;
+import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
+import de.mach.tools.neodesigner.core.datamodel.Index;
+import de.mach.tools.neodesigner.core.datamodel.Table;
+import de.mach.tools.neodesigner.ui.controller.NeoDbDesignerController;
+
+
+/** Observer für den Treeview.
  *
- * @author Chris Deter
- *
- */
+ * @author Chris Deter */
 public class TreeViewObserver implements Observer {
 
   private final TreeView<String> treeView;
@@ -56,20 +43,14 @@ public class TreeViewObserver implements Observer {
   private final ListenerHandle listenerTreeView;
   private AutoCompletionBinding<String> autocomplete;
 
-  /**
-   * Konstruktor.
+  /** Konstruktor.
    *
-   * @param neoDbD
-   *          der Controller in dem der Treeview sitzt
-   * @param tv
-   *          Der Treeview
-   * @param st
-   *          Das Textfeld, dass Autocomplete verwendet
-   * @param m
-   *          das Model
-   */
+   * @param neoDbD der Controller in dem der Treeview sitzt
+   * @param tv Der Treeview
+   * @param st Das Textfeld, dass Autocomplete verwendet
+   * @param m das Model */
   public TreeViewObserver(final NeoDbDesignerController neoDbD, final TreeView<String> tv, final TextField st,
-      final Model m) {
+                          final Model m) {
     treeView = tv;
     searchText = st;
     ndbm = m;
@@ -79,12 +60,9 @@ public class TreeViewObserver implements Observer {
     observe(ndbm.dataModelObservable());
   }
 
-  /**
-   * Observe Methode.
+  /** Observe Methode.
    *
-   * @param o
-   *          Observable
-   */
+   * @param o Observable */
   private void observe(final Observable o) {
     o.addObserver(this);
   }
@@ -96,23 +74,17 @@ public class TreeViewObserver implements Observer {
       clearData();
       loadTreeViewElements(ndbm.getListWithTableNames());
     });
-
   }
 
-  /**
-   * leert den Treeview.
-   */
+  /** leert den Treeview. */
   private void clearData() {
     listenerTreeView.detach();
     treeView.getRoot().getChildren().clear();
   }
 
-  /**
-   * Läd die Treeview Ansicht.
+  /** Läd die Treeview Ansicht.
    *
-   * @param listOfTables
-   *          Liste aller Tabellen im Datenmodell
-   */
+   * @param listOfTables Liste aller Tabellen im Datenmodell */
   private void loadTreeViewElements(final List<String> listOfTables) {
     final TreeItem<String> rootItem = treeView.getRoot();
     rootItem.getChildren().clear();
@@ -125,13 +97,10 @@ public class TreeViewObserver implements Observer {
     listenerTreeView.attach();
   }
 
-  /**
-   * erstellt ein Item im Treeview.
+  /** erstellt ein Item im Treeview.
    *
-   * @param t
-   *          die Tabelle
-   * @return TreeItem für diese Tabelle
-   */
+   * @param t die Tabelle
+   * @return TreeItem für diese Tabelle */
   private TreeItem<String> createItemMain(final String tableName) {
     final TreeItem<String> item = new TreeItem<>(tableName);
     final TreeItem<String> field = new TreeItem<>(Strings.NAME_FIELDS);
@@ -145,41 +114,38 @@ public class TreeViewObserver implements Observer {
     return item;
   }
 
-  /**
-   * erstellt ein Item im Treeview.
+  /** erstellt ein Item im Treeview.
    *
-   * @param t
-   *          die Tabelle
-   * @return TreeItem für diese Tabelle
-   */
+   * @param t die Tabelle
+   * @return TreeItem für diese Tabelle */
   private void createItemsDetail(final TreeItem<String> ti, final Table t) {
     final TreeItem<String> field = ti.getChildren().get(0);
+    field.getChildren().clear();
     for (final Field f : t.getFields()) {
       field.getChildren().add(new TreeItem<>(f.getName()));
     }
     final TreeItem<String> prim = ti.getChildren().get(1);
+    prim.getChildren().clear();
     prim.getChildren().add(new TreeItem<>(t.getXpk().getName()));
     final TreeItem<String> index = ti.getChildren().get(2);
+    index.getChildren().clear();
     for (final Index i : t.getIndizies()) {
       index.getChildren().add(new TreeItem<>(i.getName()));
     }
     final TreeItem<String> foreign = ti.getChildren().get(3);
+    foreign.getChildren().clear();
     for (final ForeignKey i : t.getForeignKeys()) {
       foreign.getChildren().add(new TreeItem<>(i.getName() + " (" + i.getRefTable().getName() + ")"));
     }
   }
 
-  /**
-   * fügt Autocomplete Funktion zum Suchfeld hinzu.
-   */
+  /** fügt Autocomplete Funktion zum Suchfeld hinzu. */
   public void loadAutoComplete() {
     autocomplete.dispose();
     autocomplete = TextFields.bindAutoCompletion(searchText, ndbm.getListWithTableNames());
   }
 
-  /**
-   * Läd die Treeview Ansicht.
-   */
+  /** Läd die Treeview Ansicht. (initialisierung vom Treeview) */
   public void loadTreeView() {
     clearData();
     loadTreeViewElements(ndbm.getListWithTableNames());

@@ -1,35 +1,29 @@
-/*******************************************************************************
- * Copyright (C) 2017 Chris Deter
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- ******************************************************************************/
+/* Copyright (C) 2018 Chris Deter Permission is hereby granted, free of charge, to any person obtaining a copy of this
+ * software and associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+ * Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The
+ * above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+ * Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+ * LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE. */
 
 package de.mach.tools.neodesigner.core;
 
-import de.mach.tools.neodesigner.core.datamodel.Domain.DomainId;
-import de.mach.tools.neodesigner.core.Configuration;
-import de.mach.tools.neodesigner.core.Model;
-import de.mach.tools.neodesigner.core.ModelImpl;
-import de.mach.tools.neodesigner.core.Save;
-import de.mach.tools.neodesigner.core.Util;
-import de.mach.tools.neodesigner.core.Validator;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Observable;
+import javafx.concurrent.Task;
+
+import org.junit.jupiter.api.Test;
+
 import de.mach.tools.neodesigner.core.category.CategoryTranslator;
+import de.mach.tools.neodesigner.core.datamodel.Domain.DomainId;
 import de.mach.tools.neodesigner.core.datamodel.Field;
 import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
 import de.mach.tools.neodesigner.core.datamodel.Index;
@@ -41,17 +35,10 @@ import de.mach.tools.neodesigner.core.datamodel.impl.IndexImpl;
 import de.mach.tools.neodesigner.core.datamodel.impl.TableImpl;
 import de.mach.tools.neodesigner.core.nimport.ImportTask;
 import de.mach.tools.neodesigner.database.cypher.DatabaseConnectorImpl;
-import de.mach.tools.neodesigner.database.cypher.DatabaseManager;
+import de.mach.tools.neodesigner.database.cypher.DatabaseManagerLean;
 import de.mach.tools.neodesigner.database.cypher.DatabaseMockConnector;
 import de.mach.tools.neodesigner.database.local.DataModelManager;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Observable;
-import javafx.concurrent.Task;
-import org.junit.Assert;
-import org.junit.Test;
 
 public class TestModel {
   public static final String tableName = "Testtabelle";
@@ -67,63 +54,21 @@ public class TestModel {
   public static final String indexName10 = "XAK10TestIndex";
 
   @Test
-  public void testModelGeneral() {
-    final DatabaseMockConnector dmc = new DatabaseMockConnector();
-    final Model m = new ModelImpl(dmc, new MockCategoryTranslator());
-    dmc.addr = m.getAddrOfDb();
-    dmc.nutzername = m.getUser();
-    dmc.pw = m.getPw();
-    Assert.assertTrue(m.getSaveObj().getTables().size() == 0);
-    Assert.assertTrue(!m.isOnline());
-    m.connectDb(m.getAddrOfDb(), m.getPw(), m.getUser());
-    Assert.assertTrue(!m.isOnline());
-    m.connectDb(m.getAddrOfDb(), m.getUser(), m.getPw());
-    Assert.assertTrue(m.isOnline());
-    final Observable o = m.dataModelObservable();
-    Assert.assertTrue(o != null);
-    final Table t = m.getnewTable("Name");
-    Assert.assertTrue("Name".equals(t.getName()));
-    final Save s = m.getSaveObj();
-    Assert.assertTrue(s != null);
-    s.insertNewTable(t);
-    final Table res = m.getTable("Name").get();
-    Assert.assertTrue(res.equals(t));
-    m.getListWithTableNames();
-    Assert.assertTrue("MATCH(t:Table) RETURN t.name AS name, t.category AS category, t.comment AS comment ORDER BY name"
-        .equals(dmc.lastQuery));
-    Assert.assertTrue(m.getNextFkNumber() == 101);
-    m.disconnectDb();
-    Assert.assertTrue(!m.isOnline());
-    Assert.assertTrue(!m.getTable("Name").isPresent());
-    m.connectDb(m.getAddrOfDb(), m.getUser(), m.getPw());
-    m.deleteDatabase();
-    Assert.assertTrue(!m.getTable("Name").isPresent());
-    m.addTableList(TestUtil.getTableList());
-    Assert.assertTrue(m.getTable("Table1").isPresent());
-    Assert.assertTrue(m.getAllTables().size() == 5);
-    Assert.assertTrue(m.getValidator() != null);
-    // TODO: Daten hineininjektzieren
-    m.saveCategoryList(TestUtil.getCatList());
-    Assert.assertTrue(m.getCategorySelection().toString().equals(
-        "[(0,0) Cat0(id: 0 sid: 1), (1) Cat1(id: 0 sid: 2), (1,1) Cat1a(id: 0 sid: 3), (1,2) Cat1b(id: 0 sid: 4), (1,3) "
-            + "Cat1c(id: 0 sid: 5), (1,4) Cat1d(id: 0 sid: 6), (1,5) Cate(id: 0 sid: 7)]"));
-  }
-
-  @Test
-  public void testModelGeneral2() {
-    final DatabaseMockConnector dmc = new DatabaseMockConnector();
-    final Model m = new ModelImpl(dmc, new MockCategoryTranslator());
-    dmc.addr = m.getAddrOfDb();
-    dmc.nutzername = m.getUser();
-    dmc.pw = m.getPw();
-    m.connectDb(m.getAddrOfDb(), m.getUser(), m.getPw());
-    Assert.assertTrue(m.isOnline());
-    Assert.assertTrue(null != m.getPathImportSql());
-    Assert.assertTrue(null != m.getPathImportCat());
-    Assert.assertTrue(null != m.getPathImportCsv());
-    Assert.assertTrue(null != m.getPathExportSql());
-    Assert.assertTrue(null != m.getPathExportCsv());
-    Assert.assertTrue(null != m.getPathExportCql());
+  public void testCsvImportTask() {
+    final ModelImpl m = new ModelImpl(new DatabaseMockConnector(), new CategoryTranslator());
+    final ImportTask it = m.importTask("\"test\", \"1,2\"", 'c', "",
+                                       new DatabaseManagerLean(new DatabaseMockConnector()));
+    final Thread t = new Thread(it);
+    t.start();
+    try {
+      t.join();
+      assertTrue(!t.isAlive());
+      assertTrue(it.isDone());
+    }
+    catch (final InterruptedException e) {
+      fail("couldn't wait for Process");
+      e.printStackTrace();
+    }
   }
 
   @Test
@@ -131,15 +76,74 @@ public class TestModel {
     final DatabaseMockConnector dmc = new DatabaseMockConnector();
     final Model m = new ModelImpl(dmc, new CategoryTranslator());
     try {
-      final Task<List<Table>> t = m.loadFromDbTask(dmc);
+      final Task<List<Table>> t = m.loadFromDbTask();
       final Thread th = new Thread(t);
       th.start();
       th.join();
-      Assert.assertTrue(t.isDone());
-    } catch (final Exception e) {
-      e.printStackTrace();
-      Assert.fail("task failed");
+      assertTrue(t.isDone());
     }
+    catch (final Exception e) {
+      e.printStackTrace();
+      fail("task failed");
+    }
+  }
+
+  @Test
+  public void testModelGeneral() {
+    final DatabaseMockConnector dmc = new DatabaseMockConnector();
+    final Model m = new ModelImpl(dmc, new MockCategoryTranslator());
+    dmc.addr = m.getAddrOfDb();
+    dmc.nutzername = m.getGuiConf().getUser();
+    dmc.pw = m.getGuiConf().getPw();
+    assertTrue(m.getSaveObj().getTables().size() == 0);
+    assertTrue(!m.isOnline());
+    m.connectDb(m.getAddrOfDb(), m.getGuiConf().getPw(), m.getGuiConf().getUser() + m.getGuiConf().getPw());
+    assertTrue(!m.isOnline());
+    m.connectDb(m.getAddrOfDb(), m.getGuiConf().getUser(), m.getGuiConf().getPw());
+    assertTrue(m.isOnline());
+    final Observable o = m.dataModelObservable();
+    assertTrue(o != null);
+    final Table t = m.getnewTable("Name");
+    assertTrue("Name".equals(t.getName()));
+    final Save s = m.getSaveObj();
+    assertTrue(s != null);
+    s.insertNewTable(t);
+    final Table res = m.getTable("Name").get();
+    assertTrue(res.equals(t));
+    m.getListWithTableNames();
+    assertTrue("MATCH(t:Table) RETURN t.name AS name ORDER BY name".equals(dmc.lastQuery));
+    assertTrue(m.getNextFkNumber(0) == 101);
+    m.disconnectDb();
+    assertTrue(!m.isOnline());
+    assertTrue(!m.getTable("Name").isPresent());
+    m.connectDb(m.getAddrOfDb(), m.getGuiConf().getUser(), m.getGuiConf().getPw());
+    m.deleteDatabase();
+    assertTrue(!m.getTable("Name").isPresent());
+    m.addTableList(TestUtil.getTableList());
+    assertTrue(m.getTable("Table1").isPresent());
+    assertTrue(m.getAllTables().size() == 5);
+    assertTrue(m.getValidator() != null);
+    m.saveCategoryList(TestUtil.getCatList());
+    assertTrue(m.getCategorySelection().toString()
+        .equals("[(0,0) Cat0(id: 0 sid: 1), (1) Cat1(id: 0 sid: 2), (1,1) Cat1a(id: 0 sid: 3), (1,2) Cat1b(id: 0 sid: 4), (1,3) "
+                + "Cat1c(id: 0 sid: 5), (1,4) Cat1d(id: 0 sid: 6), (1,5) Cate(id: 0 sid: 7)]"));
+  }
+
+  @Test
+  public void testModelGeneral2() {
+    final DatabaseMockConnector dmc = new DatabaseMockConnector();
+    final Model m = new ModelImpl(dmc, new MockCategoryTranslator());
+    dmc.addr = m.getAddrOfDb();
+    dmc.nutzername = m.getGuiConf().getUser();
+    dmc.pw = m.getGuiConf().getPw();
+    m.connectDb(m.getAddrOfDb(), m.getGuiConf().getUser(), m.getGuiConf().getPw());
+    assertTrue(m.isOnline());
+    assertTrue(null != m.getGuiConf().getPathImportSql());
+    assertTrue(null != m.getGuiConf().getPathImportCat());
+    assertTrue(null != m.getGuiConf().getPathImportCsv());
+    assertTrue(null != m.getGuiConf().getPathExportSql());
+    assertTrue(null != m.getGuiConf().getPathExportCsv());
+    assertTrue(null != m.getGuiConf().getPathExportCql());
   }
 
   @Test
@@ -147,12 +151,11 @@ public class TestModel {
     final Model m = new ModelImpl(new DatabaseConnectorImpl(), new CategoryTranslator());
     final Configuration config = new Configuration();
     config.init();
-    Assert.assertTrue(m.getAddrOfDb().equals(config.getAddrOfDb()));
-    Assert.assertTrue(m.getPw().equals(config.getPw()));
-    Assert.assertTrue(m.getUser().equals(config.getUser()));
-    Assert.assertTrue(Arrays.equals(m.getSelectDatatype(), config.getSelectDataType()));
-    Assert.assertTrue(m.getWordLength() == config.getWordLength());
-
+    assertTrue(m.getAddrOfDb().equals(config.getAddrOfDb()));
+    assertTrue(m.getGuiConf().getPw().equals(config.getPw()));
+    assertTrue(m.getGuiConf().getUser().equals(config.getUser()));
+    assertTrue(Arrays.equals(m.getSelectDatatype(), config.getSelectDataType()));
+    assertTrue(m.getWordLength() == config.getWordLength());
   }
 
   @Test
@@ -162,7 +165,7 @@ public class TestModel {
     li.add(new IndexImpl(TestModel.indexName, Type.XAK, t));
     li.add(new IndexImpl(TestModel.indexName2, Type.XAK, t));
     final Model m = new ModelImpl(new DatabaseConnectorImpl(), new CategoryTranslator());
-    Assert.assertTrue(m.getNextNumberForIndex(li) == 2);
+    assertTrue(m.getNextNumberForIndex(li) == 2);
   }
 
   @Test
@@ -180,22 +183,39 @@ public class TestModel {
     li.add(new IndexImpl(TestModel.indexName9, Type.XAK, t));
     li.add(new IndexImpl(TestModel.indexName10, Type.XAK, t));
     final Model m = new ModelImpl(new DatabaseConnectorImpl(), new CategoryTranslator());
-    Assert.assertTrue(m.getNextNumberForIndex(li) == 11);
+    assertTrue(m.getNextNumberForIndex(li) == 11);
   }
 
   @Test
   public void testNameValidation() {
     final Save save = new DataModelManager();
     final Validator v = new Validator(18, 18, 15, save);
-    Assert.assertTrue(v.validateName("TestName"));
-    Assert.assertTrue(v.getLastError().equals(""));
-    Assert.assertTrue(!v.validateName("CONSTRAINT"));
-    Assert.assertTrue(!v.getLastError().equals(""));
-    Assert.assertTrue(v.validateName("666HellOfATable"));
-    Assert.assertTrue(!v.validateName("???"));
-    Assert.assertTrue(!v.getLastError().equals(""));
-    Assert.assertTrue(!v.validateName("ThisIsAVeryLongTableNameThatShouldNeverBeUsed"));
-    Assert.assertTrue(!v.getLastError().equals(""));
+    assertTrue(v.validateName("TestName"));
+    assertTrue(v.getLastError().equals(""));
+    assertTrue(!v.validateName("CONSTRAINT"));
+    assertTrue(!v.getLastError().equals(""));
+    assertTrue(v.validateName("666HellOfATable"));
+    assertTrue(!v.validateName("???"));
+    assertTrue(!v.getLastError().equals(""));
+    assertTrue(!v.validateName("ThisIsAVeryLongTableNameThatShouldNeverBeUsed"));
+    assertTrue(!v.getLastError().equals(""));
+  }
+
+  @Test
+  public void testSqlImportTask() {
+    final ModelImpl m = new ModelImpl(new DatabaseMockConnector(), new CategoryTranslator());
+    final ImportTask it = m.importTask("", 's', "", new DatabaseManagerLean(new DatabaseMockConnector()));
+    final Thread t = new Thread(it);
+    t.start();
+    try {
+      t.join();
+      assertTrue(!t.isAlive());
+      assertTrue(it.isDone());
+    }
+    catch (final InterruptedException e) {
+      fail("couldn't wait for Process");
+      e.printStackTrace();
+    }
   }
 
   @Test
@@ -223,77 +243,45 @@ public class TestModel {
     t.getIndizies().add(i);
     t.getForeignKeys().add(fk);
     t.setXpk(xpk);
-    Assert.assertTrue(v.validateTable(t, false));
-    Assert.assertTrue(v.getLastError().equals(""));
+    assertTrue(v.validateTable(t, false));
+    assertTrue(v.getLastError().equals(""));
     t = new TableImpl("Tab!le");
     fk = new ForeignKeyImpl("R_100", t);
     fk.setRefTable(null);
     fk.setIndex(i2);
     fk.getIndex().clearFieldList();
     t.getForeignKeys().add(fk);
-    Assert.assertTrue(!v.validateTable(t, true));
-    Assert.assertTrue(!v.getLastError().equals(""));
-  }
-
-  @Test
-  public void testCsvImportTask() {
-    final ModelImpl m = new ModelImpl(new DatabaseMockConnector(), new CategoryTranslator());
-    final ImportTask it = m.importTask("\"test\", \"1,2\"", 'c', "", new DatabaseManager(new DatabaseMockConnector()));
-    final Thread t = new Thread(it);
-    t.start();
-    try {
-      t.join();
-      Assert.assertTrue(!t.isAlive());
-      Assert.assertTrue(it.isDone());
-    } catch (final InterruptedException e) {
-      Assert.fail("couldn't wait for Process");
-      e.printStackTrace();
-    }
-  }
-
-  @Test
-  public void testSqlImportTask() {
-    final ModelImpl m = new ModelImpl(new DatabaseMockConnector(), new CategoryTranslator());
-    final ImportTask it = m.importTask("", 's', "", new DatabaseManager(new DatabaseMockConnector()));
-    final Thread t = new Thread(it);
-    t.start();
-    try {
-      t.join();
-      Assert.assertTrue(!t.isAlive());
-      Assert.assertTrue(it.isDone());
-    } catch (final InterruptedException e) {
-      Assert.fail("couldn't wait for Process");
-      e.printStackTrace();
-    }
+    assertTrue(!v.validateTable(t, true));
+    assertTrue(!v.getLastError().equals(""));
   }
 
   @Test
   public void testUtilIsInteger() {
-    Assert.assertTrue(Util.isInteger("0"));
-    Assert.assertTrue(Util.isInteger("-1"));
-    Assert.assertTrue(!Util.isInteger("-"));
-    Assert.assertTrue(Util.isInteger("-999"));
-    Assert.assertTrue(Util.isInteger("999"));
-    Assert.assertTrue(!Util.isInteger("a"));
-    Assert.assertTrue(!Util.isInteger("1,"));
-    Assert.assertTrue(!Util.isInteger(".6"));
-    Assert.assertTrue(!Util.isInteger("99A99"));
-    Assert.assertTrue(!Util.isInteger(""));
-    Assert.assertTrue(!Util.isInteger(null));
+    assertTrue(Util.isInteger("0"));
+    assertTrue(Util.isInteger("-1"));
+    assertTrue(!Util.isInteger("-"));
+    assertTrue(Util.isInteger("-999"));
+    assertTrue(Util.isInteger("999"));
+    assertTrue(!Util.isInteger("a"));
+    assertTrue(!Util.isInteger("1,"));
+    assertTrue(!Util.isInteger(".6"));
+    assertTrue(!Util.isInteger("99A99"));
+    assertTrue(!Util.isInteger(""));
+    assertTrue(!Util.isInteger(null));
   }
 
   @Test
   public void testUtilTryToParseInt() {
-    Assert.assertTrue(Util.tryParseInt("0") == 0);
-    Assert.assertTrue(Util.tryParseInt("-1") == -1);
-    Assert.assertTrue(Util.tryParseInt("-") == 0);
-    Assert.assertTrue(Util.tryParseInt("-999") == -999);
-    Assert.assertTrue(Util.tryParseInt("999") == 999);
-    Assert.assertTrue(Util.tryParseInt("a") == 0);
-    Assert.assertTrue(Util.tryParseInt("1,") == 0);
-    Assert.assertTrue(Util.tryParseInt(".6") == 0);
-    Assert.assertTrue(Util.tryParseInt("99A99") == 0);
-    Assert.assertTrue(Util.tryParseInt("") == 0);
-    Assert.assertTrue(Util.tryParseInt(null) == 0);
+    assertTrue(Util.tryParseInt("0") == 0);
+    assertTrue(Util.tryParseInt("-1") == -1);
+    assertTrue(Util.tryParseInt("-") == 0);
+    assertTrue(Util.tryParseInt("-999") == -999);
+    assertTrue(Util.tryParseInt("999") == 999);
+    assertTrue(Util.tryParseInt("a") == 0);
+    assertTrue(Util.tryParseInt("1,") == 0);
+    assertTrue(Util.tryParseInt(".6") == 0);
+    assertTrue(Util.tryParseInt("99A99") == 0);
+    assertTrue(Util.tryParseInt("") == 0);
+    assertTrue(Util.tryParseInt(null) == 0);
   }
 }

@@ -13,7 +13,6 @@ package de.mach.tools.neodesigner.core.datamodel.viewimpl;
 
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -41,11 +40,7 @@ public class ViewIndex extends ViewNodeImpl<Index> implements Index {
    * @param nodeOf Tabelle vom Index */
   public ViewIndex(final Index i, final ViewTable nodeOf) {
     super(new IndexImpl(i, nodeOf), nodeOf);
-    // TODO: Test schreiben, der Deep Copy Constructor testet (Ordnung des Original
-    // Indexes muss erhalten bleiben)
     setUnique(i.isUnique());
-    unique.addListener((obs, oldValue, newValue) -> modifyUnique());
-    nameProperty().addListener((obs, oldValue, newValue) -> modifyName());
     indexPrepWork();
   }
 
@@ -84,7 +79,7 @@ public class ViewIndex extends ViewNodeImpl<Index> implements Index {
   }
 
   @Override
-  public Optional<Field> getFieldByOrder(final int order, final boolean ref) {
+  public Field getFieldByOrder(final int order, final boolean ref) {
     return getNode().getFieldByOrder(order, ref);
   }
 
@@ -122,7 +117,9 @@ public class ViewIndex extends ViewNodeImpl<Index> implements Index {
 
   /** Initialisieren von der Feldliste des Indexes. */
   private void indexPrepWork() {
-    fieldListAsString.set(getNode().getFieldList().toString());
+    fieldListAsString.set(getFieldList().toString());
+    unique.addListener((obs, oldValue, newValue) -> modifyUnique());
+    nameProperty().addListener((obs, oldValue, newValue) -> modifyName());
   }
 
   /** View Methode um zu erkennen ob die Eigenschaft verändert wurde.
@@ -146,7 +143,7 @@ public class ViewIndex extends ViewNodeImpl<Index> implements Index {
 
   /** wird aufgerufen wenn die Feldliste des Indexes verändert wurde. */
   private void modifiedFieldList() {
-    fieldListAsString.set(getNode().getFieldList().toString());
+    fieldListAsString.set(getFieldList().toString());
     modifiedDatafields = true;
     setModified();
   }
@@ -197,8 +194,9 @@ public class ViewIndex extends ViewNodeImpl<Index> implements Index {
   }
 
   @Override
-  public void setOrder(final String name, final int order, final boolean ref) {
-    getNode().setOrder(name, order, ref);
+  public void setOrder(final String name, final int order, final boolean isRef) {
+    getNode().setOrder(name, order, isRef);
+    modifiedFieldList();
   }
 
   @Override
@@ -212,10 +210,25 @@ public class ViewIndex extends ViewNodeImpl<Index> implements Index {
     this.unique.set(unique);
   }
 
+  @Override
+  public boolean hasField(String fieldname) {
+    return getNode().hasField(fieldname);
+  }
+
   /** Property für die Anzeige in der GUI.
    *
    * @return BooleanProperty unique */
   public BooleanProperty uniqueProperty() {
     return unique;
+  }
+
+  public boolean hasIdenticalIndexFKOrder() {
+    boolean isIdentical = true;
+    if (getFieldList().size() > 1) {
+      for (int i = 1; i <= getFieldList().size(); i++) {
+        isIdentical = isIdentical && getOrder(getFieldByOrder(i, false).getName(), true).equals(i);
+      }
+    }
+    return isIdentical;
   }
 }

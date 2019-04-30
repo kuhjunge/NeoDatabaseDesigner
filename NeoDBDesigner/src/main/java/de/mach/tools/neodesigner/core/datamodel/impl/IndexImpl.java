@@ -13,12 +13,11 @@ package de.mach.tools.neodesigner.core.datamodel.impl;
 
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import de.mach.tools.neodesigner.core.Strings;
 import de.mach.tools.neodesigner.core.datamodel.Field;
+import de.mach.tools.neodesigner.core.datamodel.FieldList;
 import de.mach.tools.neodesigner.core.datamodel.Index;
 import de.mach.tools.neodesigner.core.datamodel.Table;
 
@@ -37,6 +36,8 @@ public class IndexImpl extends NodeImpl implements Index {
       case Strings.INDEXTYPE_XPK:
         ret = Type.XPK;
         break;
+      case Strings.INDEXTYPE_XIG:
+        // Genauso behandeln wie XIF
       case Strings.INDEXTYPE_XIF:
         ret = Type.XIF;
         break;
@@ -47,7 +48,7 @@ public class IndexImpl extends NodeImpl implements Index {
     return ret;
   }
 
-  private final List<FieldWrapper> fields = new ArrayList<>();
+  private final FieldList fields = new OrderedFieldList(new ArrayList());
 
   private Type indexType = Type.XIE;
 
@@ -55,15 +56,17 @@ public class IndexImpl extends NodeImpl implements Index {
    *
    * @param i Der zu kopierende Index */
   public IndexImpl(final Index i, final Table origin) {
-    super(i.getName(), i.getTable());
+    super(i.getName(), origin);
     indexType = i.getType();
     for (final Field f : i.getFieldList()) {
-      final Optional<Field> optF = origin.getField(f.getName());
-      optF.ifPresent(field -> {
-        addField(field);
-        setOrder(field.getName(), i.getOrder(field.getName(), false), false);
-        setOrder(field.getName(), i.getOrder(field.getName(), true), true);
-      });
+      final Field newField = origin.getField(f.getName());
+      if (newField != null) {
+        addField(newField);
+        setOrder(newField.getName(), i.getOrder(newField.getName(), false), false);
+        if (indexType.equals(Type.XIF)) {
+          setOrder(newField.getName(), i.getOrder(newField.getName(), true), true);
+        }
+      }
     }
   }
 
@@ -88,11 +91,7 @@ public class IndexImpl extends NodeImpl implements Index {
 
   @Override
   public void addField(final Field f) {
-    // Wenn Feld "mit gleichen Namen" bereits vorhanden, dann lösche das alte Feld
-    fields.removeIf(fw -> fw.getField().getName().equals(f.getName()));
-    // hinzufügen
-    fields.add(new FieldWrapper(f, fields.size() + 1));
-    Collections.sort(fields);
+    fields.addField(f);
   }
 
   /** Ändert den Typ mithilfe des Namens.
@@ -119,24 +118,13 @@ public class IndexImpl extends NodeImpl implements Index {
   }
 
   @Override
-  public Optional<Field> getFieldByOrder(final int order, final boolean ref) {
-    Optional<Field> opf = Optional.empty();
-    for (final FieldWrapper fw : fields) {
-      if (fw.getOrder(ref) == order) {
-        opf = Optional.of(fw.getField());
-      }
-    }
-    return opf;
+  public Field getFieldByOrder(final int order, final boolean ref) {
+    return ref ? fields.getRefFieldByOrder(order) : fields.getFieldByOrder(order);
   }
 
   @Override
   public List<Field> getFieldList() {
-    final List<Field> fl = new ArrayList<>();
-    Collections.sort(fields);
-    for (final FieldWrapper f : fields) {
-      fl.add(f.getField());
-    }
-    return fl;
+    return fields.get();
   }
 
   @Override
@@ -145,14 +133,8 @@ public class IndexImpl extends NodeImpl implements Index {
   }
 
   @Override
-  public Integer getOrder(final String name, final boolean ref) {
-    Integer order = 0;
-    for (final FieldWrapper fw : fields) {
-      if (fw.getField().getName().equals(name)) {
-        order = fw.getOrder(ref);
-      }
-    }
-    return order;
+  public Integer getOrder(final String name, final boolean isRef) {
+    return isRef ? fields.getReferenceOrder(name) : fields.getOrder(name);
   }
 
   @Override
@@ -172,35 +154,28 @@ public class IndexImpl extends NodeImpl implements Index {
 
   @Override
   public void removeField(final int i) {
-    Collections.sort(fields);
-    fields.remove(i);
-    for (int x = i; x < fields.size(); x++) {
-      fields.get(x).setOrder(x + 1, false);
-    }
+    fields.deleteField(fields.getFieldByOrder(i + 1).getName());
   }
 
   @Override
   public void replaceField(final Field field, final String oldFieldName) {
-    Collections.sort(fields);
-    for (final FieldWrapper fw : fields) {
-      if (fw.getField().getName().equals(oldFieldName)) {
-        fw.setField(field);
-      }
-    }
+    fields.replaceField(field, oldFieldName);
   }
 
   @Override
   public void setName(final String name) {
-    super.setName(name);
-    changeTypeViaName(name);
+    String n = name.toUpperCase();
+    super.setName(n);
+    changeTypeViaName(n);
   }
 
   @Override
-  public void setOrder(final String name, final int order, final boolean ref) {
-    for (final FieldWrapper fw : fields) {
-      if (fw.getField().getName().equals(name)) {
-        fw.setOrder(order, ref);
-      }
+  public void setOrder(final String name, final int order, final boolean isRef) {
+    if (isRef) {
+      fields.setReferenceOrder(name, order);
+    }
+    else {
+      fields.setOrder(name, order);
     }
   }
 
@@ -230,5 +205,10 @@ public class IndexImpl extends NodeImpl implements Index {
         setType(Type.XIE);
       }
     }
+  }
+
+  @Override
+  public boolean hasField(String fieldname) {
+    return fields.getField(fieldname) != null;
   }
 }

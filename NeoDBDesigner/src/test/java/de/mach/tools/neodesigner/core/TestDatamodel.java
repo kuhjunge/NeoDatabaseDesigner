@@ -14,6 +14,9 @@ package de.mach.tools.neodesigner.core;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.Optional;
+
+import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
 import de.mach.tools.neodesigner.core.datamodel.Domain;
@@ -35,48 +38,48 @@ import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewIndex;
 import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewTable;
 
 
-public class TestDatamodel {
-  public static final String kategory = "1.1";
-  public static final String tableName = "Testtabelle";
-  public static final String tableName2 = "Testtabelle2";
-  public static final String fieldName = "TestFeld";
-  public static final String fieldName2 = "TestFeld2";
-  public static final int order = 1;
-  public static final int order2 = 2;
-  public static final String indexName = "XAKTestIndex";
-  public static final String indexName2 = "XIETestIndex";
-  public static final String indexName3 = "XIFTestIndex";
-  public static final String indexName4 = "XIFIndexNeuTest";
-  public static final String indexNameShort = "XIF";
-  public static final String indexPrimName = "TestPrimIndex";
-  public static final String foreignKeyName = "R_1704";
-  public static final DomainId fieldDatatype = DomainId.STRING;
-  public static final DomainId fieldDatatype2 = DomainId.AMOUNT;
-  public static final int fieldDatatypeSize = 20;
-  public static final int fieldDatatypeSize2 = 0;
-  public static final Boolean fieldIsNull = true;
-  public static final String xpkName2 = "XPKTesttabelle2";
+class TestDatamodel {
+  static final String kategory = "1.1";
+  static final String tableName = "Testtabelle";
+  static final String tableName2 = "Testtabelle2";
+  static final String fieldName = "TestFeld";
+  static final String fieldName2 = "TestFeld2";
+  private static final int order = 1;
+  private static final int order2 = 2;
+  static final String indexName = "XAKTESTINDEX";
+  static final String indexName2 = "XIETESTINDEX";
+  private static final String indexName3 = "XIFTESTINDEX";
+  public static final String indexName4 = "XIFINDEXNEUTEST";
+  private static final String indexNameShort = "XIF";
+  private static final String indexPrimName = "XPKTESTINDEX";
+  static final String foreignKeyName = "R_1704";
+  static final DomainId fieldDatatype = DomainId.STRING;
+  static final DomainId fieldDatatype2 = DomainId.AMOUNT;
+  static final int fieldDatatypeSize = 20;
+  static final int fieldDatatypeSize2 = 0;
+  static final Boolean fieldIsNull = true;
+  static final String xpkName2 = "XPKTesttabelle2";
 
   private void fieldInterfaceTest(final Table t, final Field f) {
-    assertTrue(TestDatamodel.fieldName.equals(f.getName()));
-    assertTrue(f.getTable().equals(t));
-    assertTrue(f.getDomain().equals(TestDatamodel.fieldDatatype));
-    assertTrue(f.isRequired() == TestDatamodel.fieldIsNull);
-
+    assertEquals(TestDatamodel.fieldName, f.getName());
+    assertEquals(f.getTable(), t);
+    assertEquals(TestDatamodel.fieldDatatype, f.getDomain());
+    assertEquals(TestDatamodel.fieldIsNull, f.isRequired());
+    assertTrue(!f.isPartOfPrimaryKey());
     f.setName(TestDatamodel.fieldName2);
-    f.setPartOfPrimaryKey(true);
+    t.getXpk().addField(f);
     f.setRequired(!TestDatamodel.fieldIsNull);
     f.setDomain(TestDatamodel.fieldDatatype2);
 
-    assertTrue(TestDatamodel.fieldName2.equals(f.getName()));
-    assertTrue(f.getDomain().equals(TestDatamodel.fieldDatatype2));
-    assertTrue(f.isRequired() == true);
-    assertTrue(f.isPartOfPrimaryKey() == true);
+    assertEquals(TestDatamodel.fieldName2, f.getName());
+    assertEquals(f.getDomain(), TestDatamodel.fieldDatatype2);
+    assertTrue(f.isRequired());
+    // assertTrue(f.isPartOfPrimaryKey());
     f.setDomainLength(20);
-    assertTrue(f.getDomainLength() == 0);
+    assertEquals(0, f.getDomainLength());
     f.setDomain(TestDatamodel.fieldDatatype);
     f.setDomainLength(20);
-    assertTrue(f.getDomainLength() == 20);
+    assertEquals(20, f.getDomainLength());
   }
 
   private void fkInterfaceTest(final Table rt, final Index i, final Field f, final ForeignKey fk) {
@@ -85,9 +88,9 @@ public class TestDatamodel {
     // Füge Feld hinzu und Prüfe ob das Feld hinzugefügt wurde
     fk.getIndex().addField(f);
     fk.getTable().getXpk().addField(f);
-    assertTrue(fk.getRefTable().equals(rt));
-    assertTrue(fk.getIndex().equals(i));
-    assertTrue(fk.getIndex().getOrder(f.getName(), false).equals(TestDatamodel.order));
+    assertEquals(fk.getRefTable(), rt);
+    assertEquals(fk.getIndex(), i);
+    assertEquals((int) fk.getIndex().getOrder(f.getName(), false), TestDatamodel.order);
     // Feld entfernen
     assertTrue(fk.getIndex().getFieldList().contains(f));
     fk.getIndex().removeField(0);
@@ -99,64 +102,67 @@ public class TestDatamodel {
     assertTrue(!fk.getIndex().getFieldList().contains(f));
   }
 
-  private void indexInterfaceTest(final Table t, final Index i, final Field f, final Field f2) {
+  private void indexInterfaceTest(final Table t, final Index i, final Index i2, final Field f, final Field f2) {
+    t.addIndex(i);
+    t.addIndex(i2);
     i.addField(f2);
     // i.setAltName(f2.getName(), TestDatamodel.fieldName2);
     // assertTrue(i.getAltName(f2.getName()).equals(TestDatamodel.fieldName2));
     // assertTrue(i.getNameFromAltName(TestDatamodel.fieldName2).endsWith(f2.getName()));
-    assertTrue(i.getOrder(f2.getName(), false).equals(TestDatamodel.order));
+    assertEquals((int) i.getOrder(f2.getName(), false), TestDatamodel.order);
     i.addField(f);
-    assertTrue(i.getOrder(f.getName(), false).equals(TestDatamodel.order2));
+    assertEquals((int) i.getOrder(f.getName(), false), TestDatamodel.order2);
     i.removeField(0);
-    assertTrue(i.getOrder(f.getName(), false).equals(TestDatamodel.order));
+    assertEquals((int) i.getOrder(f.getName(), false), TestDatamodel.order);
 
-    assertTrue(TestDatamodel.indexName.equals(i.getName()));
-    assertTrue(i.getTable().equals(t));
-    assertTrue(i.getType() == Type.XAK);
-    assertTrue(i.isUnique() == true);
+    assertEquals(TestDatamodel.indexName, i.getName());
+    assertEquals(i.getTable(), t);
+    assertSame(i.getType(), Type.XAK);
+    assertTrue(i.isUnique());
     assertTrue(i.getFieldList().contains(f));
 
     i.setUnique(false);
-    assertTrue(i.isUnique() == false);
-    assertTrue(i.getType() == Type.XIE);
-    assertTrue(i.getName().equals(TestDatamodel.indexName2));
+    assertTrue(!i.isUnique());
+    assertSame(i.getType(), Type.XIE);
+    assertEquals(i.getName(), TestDatamodel.indexName2);
 
     i.setUnique(true);
-    assertTrue(i.isUnique() == true);
-    assertTrue(i.getType() == Type.XAK);
-    assertTrue(i.getName().equals(TestDatamodel.indexName));
+    assertTrue(i.isUnique());
+    assertSame(i.getType(), Type.XAK);
+    assertEquals(i.getName(), TestDatamodel.indexName);
 
     i.setType(Type.XIF);
-    assertTrue(i.getType() == Type.XIF);
-    assertTrue(i.isUnique() == false);
+    assertSame(i.getType(), Type.XIF);
+    assertTrue(!i.isUnique());
 
     i.setType(Type.XAK);
-    assertTrue(i.getType() == Type.XAK);
-    assertTrue(i.isUnique() == true);
+    assertSame(i.getType(), Type.XAK);
+    assertTrue(i.isUnique());
 
     i.setType(Type.XIE);
-    assertTrue(i.getType() == Type.XIE);
-    assertTrue(i.isUnique() == false);
+    assertSame(i.getType(), Type.XIE);
+    assertTrue(!i.isUnique());
 
     final Type p = i.getType();
     i.setName(TestDatamodel.indexNameShort);
     i.setUnique(true);
-    assertTrue(TestDatamodel.indexNameShort.equals(i.getName()));
-    assertTrue(i.getType() == p);
-    assertTrue(i.isUnique() == false);
+    assertEquals(TestDatamodel.indexNameShort, i.getName());
+    assertSame(i.getType(), p);
+    assertTrue(!i.isUnique());
 
     i.setName(TestDatamodel.indexName2);
-    assertTrue(TestDatamodel.indexName2.equals(i.getName()));
-    assertTrue(i.getType() == Type.XIE);
-    assertTrue(i.isUnique() == false);
+    assertEquals(TestDatamodel.indexName2, i.getName());
+    assertSame(i.getType(), Type.XIE);
+    assertTrue(!i.isUnique());
 
     i.setName(TestDatamodel.indexName3);
-    assertTrue(TestDatamodel.indexName3.equals(i.getName()));
-    assertTrue(i.getType() == Type.XIF);
+    assertEquals(TestDatamodel.indexName3, i.getName());
+    assertSame(i.getType(), Type.XIF);
 
-    assertTrue(i.getOrder(TestDatamodel.fieldName, false) == TestDatamodel.order);
+    assertEquals((int) i.getOrder(TestDatamodel.fieldName, false), TestDatamodel.order);
+    i.addField(f2);
     i.setOrder(TestDatamodel.fieldName, TestDatamodel.order + 1, false);
-    assertTrue(i.getOrder(TestDatamodel.fieldName, false) == TestDatamodel.order + 1);
+    assertEquals((int) i.getOrder(TestDatamodel.fieldName, false), TestDatamodel.order + 1);
   }
 
   private void tableInterfaceTest(final Table t, final Field f, final Index i, final Index i2, final Index xpk,
@@ -169,41 +175,40 @@ public class TestDatamodel {
     t.setXpk(xpk);
     t.getForeignKeys().add(fk);
 
-    assertTrue(t != null);
-    assertTrue(t.getFields().size() == 1);
+    assertEquals(1, t.getFields().size());
     assertTrue(t.hashCode() != 0);
-    assertTrue(TestDatamodel.tableName.equals(t.getName()));
-    assertTrue(TestDatamodel.kategory.equals(t.getCategory()));
-    assertTrue(t.getTable() == null);
+    assertEquals(TestDatamodel.tableName, t.getName());
+    assertEquals(TestDatamodel.kategory, t.getCategory());
+    assertNull(t.getTable());
     assertTrue(t.getFields().contains(f));
-    assertTrue(t.getXpk().getName().equals(xpk.getName()));
+    assertEquals(t.getXpk().getName(), xpk.getName());
     assertTrue(t.getIndizies().contains(i));
     assertTrue(!t.getIndizies().contains(i2));
     assertTrue(t.getForeignKeys().contains(fk));
 
     t.setName(TestDatamodel.tableName2);
-    assertTrue(TestDatamodel.tableName2.equals(t.getName()));
+    assertEquals(TestDatamodel.tableName2, t.getName());
     t.addField(new FieldImpl(fieldnameneu));
-    assertTrue(t.getField(fieldnameneu).isPresent());
+    assertNotNull(t.getField(fieldnameneu));
     t.deleteField(fieldnameneu);
-    assertTrue(!t.getField(fieldnameneu).isPresent());
+    assertNull(t.getField(fieldnameneu));
   }
 
   @Test
-  public void testComment() {
+  void testComment() {
     final String comment = "Kommentar zur Tabelle";
     final Table t = new TableImpl(TestDatamodel.tableName);
     final ViewTable vt = new ViewTable(t, true);
-    assertTrue(vt.getComment().equals(""));
+    assertEquals("", vt.getComment());
     assertTrue(!vt.isModifiedComment());
     vt.setComment(comment);
-    assertTrue(vt.commentProperty() != null);
-    assertTrue(vt.getComment().equals(comment));
+    assertNotNull(vt.commentProperty());
+    assertEquals(vt.getComment(), comment);
     assertTrue(vt.isModifiedComment());
   }
 
   @Test
-  public void testComparing() {
+  void testComparing() {
     final Field f = new FieldImpl(TestDatamodel.fieldName);
     final Table t = new TableImpl(TestDatamodel.tableName);
     final Index i = new IndexImpl(TestDatamodel.indexName, Type.XIE, t);
@@ -214,7 +219,7 @@ public class TestDatamodel {
   }
 
   @Test
-  public void testComparingView() {
+  void testComparingView() {
     final ViewTable t = new ViewTable(TestDatamodel.tableName);
     final ViewTable rt = new ViewTable(TestDatamodel.tableName2);
     final ViewIndex i = new ViewIndex(new IndexImpl(TestDatamodel.indexName, Type.XAK, t), t);
@@ -230,26 +235,26 @@ public class TestDatamodel {
   }
 
   @Test
-  public void testDomain() {
+  void testDomain() {
     final Domain d = new Domain("String:25");
-    assertTrue(d.getDomainlength() == 25);
-    assertTrue(d.getDomain().equals(DomainId.STRING));
+    assertEquals(25, d.getDomainlength());
+    assertEquals(d.getDomain(), DomainId.STRING);
     d.setDomainlength(20);
-    assertTrue(d.getDomainlength() == 20);
+    assertEquals(20, d.getDomainlength());
     d.setDomain(DomainId.BLOB);
-    assertTrue(d.getDomain().equals(DomainId.BLOB));
-    assertTrue(Domain.getFromName(Domain.getName(DomainId.LOOKUP)).equals(DomainId.LOOKUP));
-    assertTrue(Domain.getFromName(Domain.getName(DomainId.STRING)).equals(DomainId.STRING));
-    assertTrue(Domain.getFromName(Domain.getName(DomainId.AMOUNT)).equals(DomainId.AMOUNT));
-    assertTrue(Domain.getFromName(Domain.getName(DomainId.COUNTER)).equals(DomainId.COUNTER));
-    assertTrue(Domain.getFromName(Domain.getName(DomainId.BOOLEAN)).equals(DomainId.BOOLEAN));
-    assertTrue(Domain.getFromName(Domain.getName(DomainId.DATE)).equals(DomainId.DATE));
-    assertTrue(Domain.getFromName(Domain.getName(DomainId.BLOB)).equals(DomainId.BLOB));
-    assertTrue(Domain.getFromName(Domain.getName(DomainId.CLOB)).equals(DomainId.CLOB));
+    assertEquals(d.getDomain(), DomainId.BLOB);
+    assertEquals(Domain.getFromName(Domain.getName(DomainId.LOOKUP)), DomainId.LOOKUP);
+    assertEquals(Domain.getFromName(Domain.getName(DomainId.STRING)), DomainId.STRING);
+    assertEquals(Domain.getFromName(Domain.getName(DomainId.AMOUNT)), DomainId.AMOUNT);
+    assertEquals(Domain.getFromName(Domain.getName(DomainId.COUNTER)), DomainId.COUNTER);
+    assertEquals(Domain.getFromName(Domain.getName(DomainId.BOOLEAN)), DomainId.BOOLEAN);
+    assertEquals(Domain.getFromName(Domain.getName(DomainId.DATE)), DomainId.DATE);
+    assertEquals(Domain.getFromName(Domain.getName(DomainId.BLOB)), DomainId.BLOB);
+    assertEquals(Domain.getFromName(Domain.getName(DomainId.CLOB)), DomainId.CLOB);
   }
 
   @Test
-  public void testFieldConnectedFKs() {
+  void testFieldConnectedFKs() {
     final ViewTable t = new ViewTable(TestDatamodel.tableName);
     final ViewTable rt = new ViewTable(TestDatamodel.tableName2);
     final ViewIndex i = new ViewIndex(new IndexImpl(TestDatamodel.indexName, Type.XAK, t), t);
@@ -271,35 +276,34 @@ public class TestDatamodel {
     fk.getIndex().addField(f);
     final ViewForeignKey fk2 = new ViewForeignKey(fkOriginal2, t);
     t.getForeignKeysRaw().add(fk2);
-    assertTrue(t.getField(TestDatamodel.fieldName).get().getConnectedFks().size() == 1);
-    assertTrue(t.getField(TestDatamodel.fieldName).get().getConnectedFks().get(0).equals(fk));
-    assertTrue(!t.getField(TestDatamodel.fieldName).get().getConnectedFks().get(0).equals(fk2));
+    assertEquals(1, t.getField(TestDatamodel.fieldName).getConnectedFks().size());
+    assertEquals(t.getField(TestDatamodel.fieldName).getConnectedFks().get(0), fk);
+    assertTrue(!t.getField(TestDatamodel.fieldName).getConnectedFks().get(0).equals(fk2));
   }
 
   @Test
-  public void testFieldImpl() {
+  void testFieldImpl() {
     final Table t = new TableImpl(TestDatamodel.tableName);
     final Field f = new FieldImpl(TestDatamodel.fieldName, TestDatamodel.fieldDatatype, TestDatamodel.fieldDatatypeSize,
                                   TestDatamodel.fieldIsNull, "", t);
-
     fieldInterfaceTest(t, f);
   }
 
   @Test
-  public void testFieldWrapper() {
+  void testFieldWrapper() {
     final Field f = new FieldImpl(TestDatamodel.fieldName);
     final FieldWrapper fw = new FieldWrapper(f, 1);
     final FieldWrapper fwComp = new FieldWrapper(f, 1);
     final FieldWrapper fwComp2 = new FieldWrapper(f, 2);
-    assertTrue(fw.getOrder(false) == 1);
-    assertTrue(fw.toString().equals(TestDatamodel.fieldName + " 1"));
-    assertTrue(fw.equals(fwComp));
+    assertEquals(1, fw.getOrder(false));
+    assertEquals(fw.toString(), TestDatamodel.fieldName + " 1");
+    assertEquals(fw, fwComp);
     assertTrue(!fw.equals(fwComp2));
-    assertTrue(fw.hashCode() == -959971302);
+    assertEquals(fw.hashCode(), -959971302);
   }
 
   @Test
-  public void testForeignKeyImpl() {
+  void testForeignKeyImpl() {
     final Table t = new TableImpl(TestDatamodel.tableName);
     final Table rt = new TableImpl(TestDatamodel.tableName2);
     final Index i = new IndexImpl(TestDatamodel.indexName, Type.XIF, t);
@@ -308,12 +312,38 @@ public class TestDatamodel {
     final ForeignKey fk = new ForeignKeyImpl(TestDatamodel.foreignKeyName, t);
     fk.setIndex(i);
     assertTrue(fk.getIndex().getFieldList().isEmpty());
-
     fkInterfaceTest(rt, i, f, fk);
   }
 
   @Test
-  public void testHasFeature() {
+  void testForeignKeyRefFieldImpl() {
+    final Table t = new TableImpl(TestDatamodel.tableName);
+    final Table rt = new TableImpl(TestDatamodel.tableName2);
+    final Index i = new IndexImpl(TestDatamodel.indexName, Type.XIF, t);
+    final Field f = new FieldImpl(TestDatamodel.fieldName, TestDatamodel.fieldDatatype, TestDatamodel.fieldDatatypeSize,
+                                  TestDatamodel.fieldIsNull, "", t);
+    final Field fxpk = new FieldImpl(TestDatamodel.fieldName + "bla", TestDatamodel.fieldDatatype,
+                                     TestDatamodel.fieldDatatypeSize, TestDatamodel.fieldIsNull, "", t);
+    final Field fxpk2 = new FieldImpl(TestDatamodel.fieldName + "blub", TestDatamodel.fieldDatatype,
+                                      TestDatamodel.fieldDatatypeSize, TestDatamodel.fieldIsNull, "", t);
+    final ForeignKey fk = new ForeignKeyImpl(TestDatamodel.foreignKeyName, t);
+    t.addForeignKey(fk, false);
+    rt.addForeignKey(fk, true);
+    rt.addField(fxpk2);
+    rt.addField(fxpk);
+    rt.getXpk().addField(fxpk2);
+    rt.getXpk().addField(fxpk);
+    fk.setRefTable(rt);
+    fk.setIndex(i);
+    fk.getIndex().addField(f);
+    String refFieldName = fxpk.getName();
+    Integer refFieldOrder = fk.getRefTable().getXpk().getOrder(refFieldName, false);
+    fk.getIndex().setOrder(f.getName(), refFieldOrder, true);
+    assertEquals(2, (int) fk.getIndex().getOrder(f.getName(), true));
+  }
+
+  @Test
+  void testHasFeature() {
     final ViewTable t = new ViewTable(TestDatamodel.tableName);
     final ViewTable rt = new ViewTable(TestDatamodel.tableName2);
     final ViewIndex i = new ViewIndex(new IndexImpl(TestDatamodel.indexName, Type.XIF, t), t);
@@ -326,6 +356,7 @@ public class TestDatamodel {
     i.addField(f);
     assertTrue(f.hasIndex());
     assertTrue(!i.hasFk());
+    i.setOrder(fieldName, 1, true);
     final ViewForeignKey fk = new ViewForeignKey("R_101", i, t);
     fk.setRefTable(rt);
     fk.setIndex(i);
@@ -334,39 +365,40 @@ public class TestDatamodel {
   }
 
   @Test
-  public void testIndexEnum() {
-    assertTrue(Index.Type.values().length == 4);
-    assertTrue(Index.Type.valueOf("XPK").compareTo(Index.Type.XPK) == 0);
+  void testIndexEnum() {
+    assertEquals(4, Type.values().length);
+    assertEquals(0, Type.valueOf("XPK").compareTo(Type.XPK));
   }
 
   @Test
-  public void testIndexImpl() {
+  void testIndexImpl() {
     final Table t = new TableImpl(TestDatamodel.tableName);
     final Index i = new IndexImpl(TestDatamodel.indexName, Type.XAK, t);
+    final Index i2 = new IndexImpl(TestDatamodel.indexName + "2", Type.XAK, t);
     final Field f = new FieldImpl(TestDatamodel.fieldName, TestDatamodel.fieldDatatype, TestDatamodel.fieldDatatypeSize,
                                   TestDatamodel.fieldIsNull, "", t);
     final Field f2 = new FieldImpl(TestDatamodel.fieldName2, TestDatamodel.fieldDatatype,
                                    TestDatamodel.fieldDatatypeSize, TestDatamodel.fieldIsNull, "", t);
-    indexInterfaceTest(t, i, f, f2);
+    indexInterfaceTest(t, i, i2, f, f2);
   }
 
   @Test
-  public void testIndexImplCopy() {
+  void testIndexImplCopy() {
     final Table t = new TableImpl(TestDatamodel.tableName);
     final Index i = new IndexImpl(TestDatamodel.indexName, Type.XAK, t);
+    final Index i2 = new IndexImpl(TestDatamodel.indexName + "2", Type.XAK, t);
     final Field f = new FieldImpl(TestDatamodel.fieldName, TestDatamodel.fieldDatatype, TestDatamodel.fieldDatatypeSize,
                                   TestDatamodel.fieldIsNull, "", t);
     final Field f2 = new FieldImpl(TestDatamodel.fieldName2, TestDatamodel.fieldDatatype,
                                    TestDatamodel.fieldDatatypeSize, TestDatamodel.fieldIsNull, "", t);
-
     final Index ix = new IndexImpl(i, t);
-    indexInterfaceTest(t, ix, f, f2);
+    indexInterfaceTest(t, ix, i2, f, f2);
   }
 
   @Test
-  public void testRelations() {
-    assertTrue(Relations.Type.values().length == 5);
-    assertTrue(Relations.getType(Relations.Type.DEFAULT).contains(""));
+  void testRelations() {
+    assertEquals(5, Relations.Type.values().length);
+    assertNotNull(Relations.getType(Relations.Type.DEFAULT));
     assertTrue(Relations.getType(Relations.Type.DATA).contains("has_column"));
     assertTrue(Relations.getType(Relations.Type.INDEX).contains("indexed_by"));
     assertTrue(Relations.getType(Relations.Type.REFERENCE).contains("references"));
@@ -374,35 +406,36 @@ public class TestDatamodel {
   }
 
   @Test
-  public void testReplaceField() {
+  void testReplaceField() {
     final Table t = new TableImpl(TestDatamodel.tableName);
     final Field f = new FieldImpl(TestDatamodel.fieldName);
     final Field f2 = new FieldImpl(TestDatamodel.fieldName2);
     final Index i = new IndexImpl(TestDatamodel.indexName, t);
     i.addField(f);
-    assertTrue(i.getFieldList().get(0).equals(f));
+    assertEquals(i.getFieldList().get(0), f);
     i.replaceField(f2, f.getName());
     assertTrue(!i.getFieldList().get(0).equals(f));
-    assertTrue(i.getFieldList().get(0).equals(f2));
+    assertEquals(i.getFieldList().get(0), f2);
   }
 
   @Test
-  public void testReplaceViewField() {
+  void testReplaceViewField() {
     final Table t = new TableImpl(TestDatamodel.tableName);
-
     final ViewTable vt = new ViewTable(t, true);
     final ViewIndex vi = new ViewIndex(new IndexImpl(TestDatamodel.indexName, t), vt);
     final ViewField vf = new ViewField(new FieldImpl(TestDatamodel.fieldName), vt);
     final ViewField vf2 = new ViewField(new FieldImpl(TestDatamodel.fieldName2), vt);
+    vt.addField(vf);
+    vt.addIndex(vi);
     vi.addField(vf);
-    assertTrue(vi.getFieldList().get(0).equals(vf));
+    assertEquals(vi.getFieldList().get(0), vf);
     vi.replaceField(vf2, vf.getName());
     assertTrue(!vi.getFieldList().get(0).equals(vf));
-    assertTrue(vi.getFieldList().get(0).equals(vf2));
+    assertEquals(vi.getFieldList().get(0), vf2);
   }
 
   @Test
-  public void testTableImpl() {
+  void testTableImpl() {
     final Table t = new TableImpl(TestDatamodel.tableName);
     final Field f = new FieldImpl(TestDatamodel.fieldName);
     final Index i = new IndexImpl(TestDatamodel.indexName, t);
@@ -413,50 +446,84 @@ public class TestDatamodel {
   }
 
   @Test
-  public void testViewField() {
+  void testViewField() {
     final ViewTable t = new ViewTable(TestDatamodel.tableName);
     ViewField f = new ViewField(new FieldImpl(TestDatamodel.fieldName, TestDatamodel.fieldDatatype,
                                               TestDatamodel.fieldDatatypeSize, TestDatamodel.fieldIsNull, "", t),
                                 t);
-    assertTrue(f.isModifiedName() == false);
-    assertTrue(f.isModifiedPrim() == false);
-    assertTrue(f.isModifiedReq() == false);
-    assertTrue(f.isModifiedDomain() == false);
+    assertTrue(!f.isModifiedName());
+    assertTrue(!f.isModifiedPrim());
+    assertTrue(!f.isModifiedReq());
+    assertTrue(!f.isModifiedDomain());
     fieldInterfaceTest(t, f);
-    assertTrue(f.nameProperty() != null);
-    assertTrue(f.primProperty() != null);
-    assertTrue(f.requiredProperty() != null);
-    assertTrue(f.typeOfDataProperty() != null);
-    assertTrue(f.isNewCreated() == false);
-    assertTrue(f.isModifiedName() == true);
-    assertTrue(f.isModifiedPrim() == true);
-    assertTrue(f.isModifiedReq() == false);
-    assertTrue(f.isModifiedDomain() == true);
-    assertTrue(f.getOldName().equals(TestDatamodel.fieldName));
+    f.setPartOfPrimaryKey(true);
+    assertNotNull(f.nameProperty());
+    assertNotNull(f.primProperty());
+    assertNotNull(f.requiredProperty());
+    assertNotNull(f.typeOfDataProperty());
+    assertTrue(!f.isNewCreated());
+    assertTrue(f.isModifiedName());
+    assertTrue(f.isModifiedPrim());
+    assertTrue(f.isModifiedReq());
+    assertTrue(f.isModifiedDomain());
+    assertEquals(f.getOldName(), TestDatamodel.fieldName);
     f.saved();
-    assertTrue(f.isModifiedName() == false);
-    assertTrue(f.isModifiedPrim() == false);
-    assertTrue(f.isModifiedReq() == false);
-    assertTrue(f.isModifiedDomain() == false);
-    assertTrue(f.getOldName().equals(f.getName()));
+    assertTrue(!f.isModifiedName());
+    assertTrue(!f.isModifiedPrim());
+    assertTrue(!f.isModifiedReq());
+    assertTrue(!f.isModifiedDomain());
+    assertEquals(f.getOldName(), f.getName());
 
     f = new ViewField(TestDatamodel.fieldName, TestDatamodel.fieldDatatype, TestDatamodel.fieldDatatypeSize,
                       TestDatamodel.fieldIsNull, t, "");
     f.setAsNewCreated();
     fieldInterfaceTest(t, f);
     f.setTypeOfData("DaTe");
-    assertTrue(f.getTypeOfData().equals(Domain.getName(DomainId.DATE)));
+    assertEquals(f.getTypeOfData(), Domain.getName(DomainId.DATE));
     // Entferne Prim, setzte nullable und dann teste ob boolean wieder auf required
     // zurücksetzt
+    f.getTable().getXpk().removeField(0);
     f.setPartOfPrimaryKey(false);
     f.setRequired(false);
-    assertTrue(f.isRequired() == false);
+    assertTrue(!f.isRequired());
     f.setDomain(DomainId.BOOLEAN);
-    assertTrue(f.isRequired() == true);
+    assertTrue(f.isRequired());
   }
 
   @Test
-  public void testViewForeignKey() {
+  void testdeepcopy() {
+    Model m = TestUtil.getDatamodel();
+    Optional<Table> t = m.getTable("TABLE0");
+    Assert.assertTrue(t.isPresent());
+    ViewTable vt = new ViewTable(t.get(), true);
+    assertEquals(t.get().getName(), vt.getName());
+    assertEquals("TABLE0: 0,0" + "[FELD0, FELDZWEI0, FELDDREI0]" + "XPKTABLE0(TABLE0)"
+                 + "[XIE100TESTINDEX(TABLE0), XIF100BLABLUB(TABLE0)]" + "[R_100(TABLE0)]",
+                 vt.toString().replaceAll(Strings.EOL, ""));
+    for (Field f : vt.getFields()) {
+      assertSame(t.get().getField(f.getName()).isPartOfPrimaryKey(), vt.getField(f.getName()).isPartOfPrimaryKey());
+      assertEquals(vt.getField(f.getName()).isPartOfPrimaryKey(),
+                   vt.getDataFieldsRaw().get(vt.getDataFieldsRaw().indexOf(f)).primProperty().get());
+    }
+    // ViewTable Test schreiben, der Deep Copy Constructor testet (Ordnung des Original
+    // Indexes muss erhalten bleiben)
+    Index original = t.get().getIndizies().get(0);
+    Index comp = vt.getIndizesRaw().get(1);
+    for (Field f : comp.getFieldList()) {
+      assertSame(original.getOrder(f.getName(), false), comp.getOrder(f.getName(), false));
+    }
+    assertEquals(original.getFieldList(), comp.getFieldList());
+    // FK Test schreiben, der Deep Copy Constructor testet (u.a. Order von PK der
+    // RefTable über FK)
+    ForeignKey originalfk = t.get().getForeignKeys().get(0);
+    ForeignKey compfk = vt.getForeignKeysRaw().get(0);
+    for (Field f : compfk.getIndex().getFieldList()) {
+      assertSame(compfk.getIndex().getOrder(f.getName(), true), compfk.getIndex().getOrder(f.getName(), true));
+    }
+  }
+
+  @Test
+  void testViewForeignKey() {
     final ViewTable t = new ViewTable(TestDatamodel.tableName);
     final ViewTable rt = new ViewTable(TestDatamodel.tableName2);
     final ViewIndex i = new ViewIndex(new IndexImpl(TestDatamodel.indexName, Type.XAK, t), t);
@@ -470,32 +537,33 @@ public class TestDatamodel {
     ViewForeignKey fk = new ViewForeignKey(fkOriginal, t);
     assertTrue(!fk.isModifiedRel());
     fk.getIndex().addField(f);
-    assertTrue(fk.fieldListStringProperty() != null);
-    assertTrue(fk.getRefTable().equals(rt));
-    assertTrue(fk.getIndex().equals(i));
+    assertNotNull(fk.fieldListStringProperty());
+    assertEquals(fk.getRefTable(), rt);
+    assertEquals(fk.getIndex(), i);
 
     fk = new ViewForeignKey(TestDatamodel.foreignKeyName, i, t);
     assertTrue(!fk.isModifiedRel());
     fk.setRefTable(rt);
     fk.setIndex(i);
-    assertTrue(fk.getVRefTable().equals(rt));
-    assertTrue(fk.getVIndex().equals(i));
+    assertEquals(fk.getVRefTable(), rt);
+    assertEquals(fk.getVIndex(), i);
     assertTrue(fk.isModifiedRel());
     fk.saved();
     assertTrue(!fk.isModifiedRel());
     fk.setModifiedRel();
     assertTrue(fk.isModifiedRel());
     fk.getIndex().clearFieldList();
-    assertTrue(fk.getRefTableName() != null);
+    assertNotNull(fk.getRefTableName());
     assertTrue(fk.modified().get());
 
     fkInterfaceTest(rt, i, f, fk);
   }
 
   @Test
-  public void testViewIndex() {
+  void testViewIndex() {
     final ViewTable t = new ViewTable(TestDatamodel.tableName);
     final ViewIndex i = new ViewIndex(new IndexImpl(TestDatamodel.indexName, Type.XAK, t), t);
+    final ViewIndex i2 = new ViewIndex(new IndexImpl(TestDatamodel.indexName + "2", Type.XAK, t), t);
     final ViewField f = new ViewField(new FieldImpl(TestDatamodel.fieldName, TestDatamodel.fieldDatatype,
                                                     TestDatamodel.fieldDatatypeSize, TestDatamodel.fieldIsNull, "", t),
                                       t);
@@ -507,7 +575,7 @@ public class TestDatamodel {
 
     final Field f2 = new FieldImpl(TestDatamodel.fieldName2, TestDatamodel.fieldDatatype,
                                    TestDatamodel.fieldDatatypeSize, TestDatamodel.fieldIsNull, "", t);
-    indexInterfaceTest(t, i, f, f2);
+    indexInterfaceTest(t, i, i2, f, f2);
     assertTrue(i.isModifiedDatafields());
     assertTrue(i.isModifiedName());
     assertTrue(i.isModifiedUnique());
@@ -515,15 +583,15 @@ public class TestDatamodel {
     assertTrue(!i.isModifiedDatafields());
     assertTrue(!i.isModifiedName());
     assertTrue(!i.isModifiedUnique());
-    assertTrue(i.fieldListStringProperty() != null);
-    assertTrue(i.uniqueProperty() != null);
+    assertNotNull(i.fieldListStringProperty());
+    assertNotNull(i.uniqueProperty());
     i.setName(TestDatamodel.indexName2);
     i.setName(TestDatamodel.indexName);
     assertTrue(i.isModifiedName());
   }
 
   @Test
-  public void testViewIndex2() {
+  void testViewIndex2() {
     final ViewTable t = new ViewTable(TestDatamodel.tableName);
 
     final Field f = new FieldImpl(TestDatamodel.fieldName, TestDatamodel.fieldDatatype, TestDatamodel.fieldDatatypeSize,
@@ -536,12 +604,12 @@ public class TestDatamodel {
     indeximpl.addField(f);
     indeximpl.addField(f2);
     final ViewIndex i = new ViewIndex(indeximpl, t);
-    assertTrue(i.getFieldList().size() == 2);
+    assertEquals(2, i.getFieldList().size());
     assertTrue(!i.hasFk());
   }
 
   @Test
-  public void testViewTable() {
+  void testViewTable() {
     final ViewTable t = new ViewTable(TestDatamodel.tableName);
     final ViewField f = new ViewField(TestDatamodel.fieldName, TestDatamodel.fieldDatatype,
                                       TestDatamodel.fieldDatatypeSize, TestDatamodel.fieldIsNull, t, "");
@@ -551,27 +619,30 @@ public class TestDatamodel {
     t.addField(f);
     t.setXpk(xpk);
 
-    assertTrue(!t.equals(null));
     assertTrue(t.hashCode() != 0);
-    assertTrue(TestDatamodel.tableName.equals(t.getName()));
-    assertTrue(TestDatamodel.kategory.equals(t.getCategory()));
-    assertTrue(t.getTable() == null);
+    assertEquals(TestDatamodel.tableName, t.getName());
+    assertEquals(TestDatamodel.kategory, t.getCategory());
+    assertNull(t.getTable());
     assertTrue(t.getFields().contains(f));
     assertTrue(t.getDataFieldsRaw().contains(f));
-    assertTrue(t.getXpk().getName().equals(xpk.getName()));
+    assertEquals(t.getXpk().getName(), xpk.getName());
 
     t.setName(TestDatamodel.tableName2);
-    assertTrue(TestDatamodel.tableName2.equals(t.getName()));
+    assertEquals(TestDatamodel.tableName2, t.getName());
   }
 
   @Test
-  public void testViewTable2() {
+  void testViewTable2() {
     final Table t = new TableImpl(TestDatamodel.tableName);
-    final Field f = new FieldImpl(TestDatamodel.fieldName);
+    final Field f = new FieldImpl(TestDatamodel.fieldName, TestDatamodel.fieldDatatype, TestDatamodel.fieldDatatypeSize,
+                                  TestDatamodel.fieldIsNull, "", t);
     final Index i = new IndexImpl(TestDatamodel.indexName, t);
     final Index i2 = new IndexImpl(TestDatamodel.indexName2, null);
     final Index xpk = new IndexImpl(TestDatamodel.indexPrimName, t);
     final ForeignKey fk = new ForeignKeyImpl(TestDatamodel.foreignKeyName, t);
+    t.addField(f);
+    t.setXpk(xpk);
+    t.getXpk().addField(f);
     fk.setIndex(i2);
     fk.setRefTable(t);
     tableInterfaceTest(t, f, i, i2, xpk, fk);
@@ -581,24 +652,28 @@ public class TestDatamodel {
   }
 
   @Test
-  public void testViewTable3() {
+  void testViewTable3() {
     final Table t = new TableImpl(TestDatamodel.tableName);
-    final Field f = new FieldImpl(TestDatamodel.fieldName);
+    final Field f = new FieldImpl(TestDatamodel.fieldName, TestDatamodel.fieldDatatype, TestDatamodel.fieldDatatypeSize,
+                                  TestDatamodel.fieldIsNull, "", t);
     final Index i = new IndexImpl(TestDatamodel.indexName, t);
     final Index i2 = new IndexImpl(TestDatamodel.indexName2, null);
     final Index xpk = new IndexImpl(TestDatamodel.indexPrimName, t);
+    t.addField(f);
+    t.setXpk(xpk);
+    t.getXpk().addField(f);
     final ForeignKey fk = new ForeignKeyImpl(TestDatamodel.foreignKeyName, t);
     fk.setIndex(i2);
     fk.setRefTable(t);
     tableInterfaceTest(t, f, i, i2, xpk, fk);
     t.setName(TestDatamodel.tableName);
     final ViewTable tt = new ViewTable(t, true);
-    assertTrue(tt.getForeignKeyNumber(100) == 1704);
-    assertTrue(tt.getForeignKeyNumber(1805) == 1805);
-    assertTrue(tt.getForeignKeyNumber(1703) == 1704);
-    assertTrue(tt.getForeignKeyNumber(1704) == 1704);
-    assertTrue(tt.getForeignKeyNumber(1705) == 1705);
+    assertEquals(1704, tt.getForeignKeyNumber(100));
+    assertEquals(1805, tt.getForeignKeyNumber(1805));
+    assertEquals(1704, tt.getForeignKeyNumber(1703));
+    assertEquals(1704, tt.getForeignKeyNumber(1704));
+    assertEquals(1705, tt.getForeignKeyNumber(1705));
     tt.getForeignKeysRaw().get(0).setName("R_neuesNamesNsystem");
-    assertTrue(tt.getForeignKeyNumber(101) == 101);
+    assertEquals(101, tt.getForeignKeyNumber(101));
   }
 }

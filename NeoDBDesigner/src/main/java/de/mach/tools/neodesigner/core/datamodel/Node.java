@@ -44,6 +44,6 @@ public interface Node extends Comparable<Node> {
 
   /** gibt den Node Typ zurück
    *
-   * @return */
+   * @return Node Type als String */
   String getNodeType();
 }

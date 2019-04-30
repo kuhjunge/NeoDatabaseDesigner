@@ -84,7 +84,7 @@ public class CategoryObj implements Comparable<CategoryObj> {
   @Override
   public int compareTo(final CategoryObj o) {
     Integer cat = 0;
-    Integer refCat = 0;
+    int refCat = 0;
     final String[] refCatParts = o.getCategory().split(",");
     if (Util.isInteger(refCatParts[0])) {
       refCat = Integer.parseInt(refCatParts[0]) * 100 + (refCatParts.length > 1 ? Integer.parseInt(refCatParts[1]) : 0);

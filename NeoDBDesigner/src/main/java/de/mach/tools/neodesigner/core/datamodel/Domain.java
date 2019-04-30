@@ -149,6 +149,7 @@ public class Domain {
     return ret;
   }
 
+  // "SMALLINT" aka Boolean -> "Integer" aka Counter
   public static String convertDomainToCsv(final DomainId did, final int len, final String delimiter) {
     String ret;
     if (did.equals(DomainId.STRING)) {

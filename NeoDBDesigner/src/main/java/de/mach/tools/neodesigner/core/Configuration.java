@@ -14,14 +14,14 @@ package de.mach.tools.neodesigner.core;
 
 import java.io.File;
 
-import de.mach.tools.neodesigner.core.nexport.pdf.PdfConf;
+import de.mach.tools.neodesigner.inex.nexport.pdf.PdfConf;
 import de.mach.tools.neodesigner.ui.GuiConf;
 
 
-/** Klasse die die Einstellung der Software von der Festplatte l�d und dort wieder speichert.
+/** Klasse die die Einstellung der Software von der Festplatte läd und dort wieder speichert.
  *
  * @author Chris Deter */
-class Configuration implements PdfConf, GuiConf {
+public class Configuration implements PdfConf, GuiConf {
   private static final String[] SELECTDATATYPE = { "Counter", "Lookup", "Date", "Amount", "Boolean", "String:1",
                                                    "String:2", "String:3", "String:4", "String:5", "String:10",
                                                    "String:20", "String:27", "String:30", "String:40", "String:50",
@@ -30,23 +30,18 @@ class Configuration implements PdfConf, GuiConf {
   private static final int UNIQTABLELENGTH = 15;
   private ConfigSaver conf = null;
 
-  public String getAddrOfDb() {
+  String getAddrOfDb() {
     return conf.getValue(Strings.CONFID_ADR);
   }
 
   @Override
-  public String getAuthor() {
+  public String getPdfAuthor() {
     return conf.getValue(Strings.CONFID_PDFAUTHOR);
   }
 
   @Override
   public String getConfigPath() {
-    return conf.getConfigPath() + File.separatorChar;
-  }
-
-  @Override
-  public int getLastDatabaseTyp() {
-    return Util.tryParseInt(conf.getValue(Strings.CONFID_DBTYPE));
+    return ConfigSaverImpl.getConfigPathRaw(Strings.SOFTWARENAME).getAbsolutePath() + File.separatorChar;
   }
 
   @Override
@@ -59,7 +54,7 @@ class Configuration implements PdfConf, GuiConf {
   }
 
   @Override
-  public String getPathExportCql() {
+  public String getPathExportGeneric() {
     return conf.getValue(Strings.CONFID_PATHOUTCQL);
   }
 
@@ -103,11 +98,11 @@ class Configuration implements PdfConf, GuiConf {
     return conf.getValue(Strings.CONFID_PW);
   }
 
-  public String[] getSelectDataType() {
-    return ConfigSaver.stringToArray(conf.getValue(Strings.CONFID_SDT));
+  String[] getSelectDataType() {
+    return ConfigSaverImpl.stringToArray(conf.getValue(Strings.CONFID_SDT));
   }
 
-  public int getUniqueTableLength() {
+  int getUniqueTableLength() {
     return Integer.parseInt(conf.getValue(Strings.CONFID_UTL));
   }
 
@@ -116,19 +111,19 @@ class Configuration implements PdfConf, GuiConf {
     return conf.getValue(Strings.CONFID_USR);
   }
 
-  public int getWordLength() {
+  int getWordLength() {
     return Integer.parseInt(conf.getValue(Strings.CONFID_WL));
   }
 
-  /** initialisiert das Objekt und l�d die Config von der Festplatte. */
-  void init() {
-    conf = new ConfigSaver(Strings.SOFTWARENAME);
+  /** initialisiert das Objekt und läd die Config von der Festplatte. */
+  void init(ConfigSaver cs) {
+    conf = cs;
     conf.setValue(Strings.CONFID_ADR, Strings.CONF_DEFAULT_ADR);
     conf.setValue(Strings.CONFID_USR, Strings.CONF_DEFAULT_USRPW);
     conf.setValue(Strings.CONFID_PW, Strings.CONF_DEFAULT_USRPW);
     conf.setValue(Strings.CONFID_WL, Integer.toString(Configuration.WORDLENGTH));
     conf.setValue(Strings.CONFID_LOC, Strings.EMPTYSTRING);
-    conf.setValue(Strings.CONFID_SDT, ConfigSaver.arrayToString(Configuration.SELECTDATATYPE));
+    conf.setValue(Strings.CONFID_SDT, ConfigSaverImpl.arrayToString(Configuration.SELECTDATATYPE));
     conf.setValue(Strings.CONFID_UTL, Integer.toString(Configuration.UNIQTABLELENGTH));
     conf.setValue(Strings.CONFID_MIKTEX, Strings.EMPTYSTRING);
     conf.setValue(Strings.CONFID_PDFPATH, Strings.EMPTYSTRING);
@@ -139,15 +134,26 @@ class Configuration implements PdfConf, GuiConf {
     conf.setValue(Strings.CONFID_PATHOUTSQL, Strings.DEFAULTPATH);
     conf.setValue(Strings.CONFID_PATHOUTCSV, Strings.DEFAULTPATH);
     conf.setValue(Strings.CONFID_PATHOUTCQL, Strings.DEFAULTPATH);
-    conf.setValue(Strings.CONFID_PDFAUTHOR, Strings.DEFAULTPATH);
-    conf.setValue(Strings.CONFID_DBTYPE, "0");
-    conf.init();
+    conf.setValue(Strings.CONFID_PDFAUTHOR, System.getProperty("user.name"));
+    // TODO: Wenn Feature getestet und eingeführt, dann diesen Parameter per default auf true setzen
+    conf.setValue(Strings.CONFID_REMOVE_REDUNDANT_INDIZES, Boolean.toString(false));
+    conf.load();
   }
 
   /** Speichert die Config File auf die Festplatte. */
   @Override
   public void save() {
     conf.save();
+  }
+
+  @Override
+  public boolean getCheckDuplicateIndizes() {
+    return Boolean.valueOf(conf.getValue(Strings.CONFID_REMOVE_REDUNDANT_INDIZES).trim());
+  }
+
+  @Override
+  public void setCheckDuplicateIndizes(boolean b) {
+    conf.setValue(Strings.CONFID_REMOVE_REDUNDANT_INDIZES, Boolean.toString(b));
   }
 
   /** Speichert die Datenbankverbindungsdaten (& alles andere auch).
@@ -162,13 +168,8 @@ class Configuration implements PdfConf, GuiConf {
     conf.save();
   }
 
-  public void setAddrOfDb(final String addrOfDb) {
+  private void setAddrOfDb(final String addrOfDb) {
     conf.setValue(Strings.CONFID_ADR, addrOfDb);
-  }
-
-  @Override
-  public void setLastDatabaseTyp(final Integer intValue) {
-    conf.setValue(Strings.CONFID_DBTYPE, intValue.toString());
   }
 
   @Override
@@ -181,7 +182,7 @@ class Configuration implements PdfConf, GuiConf {
   }
 
   @Override
-  public void setPathExportCql(final String pathExportCql) {
+  public void setPathExportGeneric(final String pathExportCql) {
     conf.setValue(Strings.CONFID_PATHOUTCQL, pathExportCql);
   }
 
@@ -194,15 +195,15 @@ class Configuration implements PdfConf, GuiConf {
     conf.setValue(Strings.CONFID_PATHOUTSQL, pathExportSql);
   }
 
-  public void setPathImportCat(final String pathImportCat) {
+  void setPathImportCat(final String pathImportCat) {
     conf.setValue(Strings.CONFID_PATHINCAT, pathImportCat);
   }
 
-  public void setPathImportCsv(final String pathImportCsv) {
+  void setPathImportCsv(final String pathImportCsv) {
     conf.setValue(Strings.CONFID_PATHINCSV, pathImportCsv);
   }
 
-  public void setPathImportSql(final String pathImportSql) {
+  void setPathImportSql(final String pathImportSql) {
     conf.setValue(Strings.CONFID_PATHINSQL, pathImportSql);
   }
 
@@ -225,19 +226,11 @@ class Configuration implements PdfConf, GuiConf {
     conf.setValue(Strings.CONFID_PW, pw);
   }
 
-  public void setSelectDataType(final String[] selectDataType) {
-    conf.setValue(Strings.CONFID_SDT, ConfigSaver.arrayToString(selectDataType));
-  }
-
-  public void setUniqueTableLength(final Integer i) {
-    conf.setValue(Strings.CONFID_UTL, i.toString());
-  }
-
-  public void setUser(final String user) {
+  private void setUser(final String user) {
     conf.setValue(Strings.CONFID_USR, user);
   }
 
-  public void setWordLength(final Integer i) {
+  void setWordLength(final Integer i) {
     conf.setValue(Strings.CONFID_WL, i.toString());
   }
 }

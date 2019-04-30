@@ -28,7 +28,6 @@ public class FieldImpl extends NodeImpl implements Field {
   private DomainId domain;
   private int size;
   private boolean isRequired = true;
-  private boolean isPartOfPrimaryKey = false;
 
   /** Konstruktor.
    *
@@ -42,12 +41,12 @@ public class FieldImpl extends NodeImpl implements Field {
    * @param name Der Name
    * @param domain Der Datentyp
    * @param domainLength Die Lenge des Datentyp String
-   * @param req ist das Feld required
+   * @param isReq ist das Feld required
    * @param nodeOf die Tabelle des Feldes */
-  public FieldImpl(final String name, final DomainId domain, final int domainLength, final boolean req,
+  public FieldImpl(final String name, final DomainId domain, final int domainLength, final boolean isReq,
                    final String comment, final Table nodeOf) {
     super(name, nodeOf);
-    setRequired(req);
+    setRequired(isReq);
     setDomain(domain);
     setDomainLength(domainLength);
     setComment(comment);
@@ -87,12 +86,11 @@ public class FieldImpl extends NodeImpl implements Field {
 
   @Override
   public boolean isPartOfPrimaryKey() {
-    return isPartOfPrimaryKey;
-  }
-
-  @Override
-  public void setPartOfPrimaryKey(final boolean prim) {
-    isPartOfPrimaryKey = prim;
+    boolean ret = false;
+    if (getTable().getXpk() != null) {
+      ret = getTable().getXpk().getFieldList().contains(this);
+    }
+    return ret;
   }
 
   @Override
@@ -125,5 +123,13 @@ public class FieldImpl extends NodeImpl implements Field {
   @Override
   public String getNodeType() {
     return "Column";
+  }
+
+  public void setDisplayOrder(int order) {
+    getTable().setOrder(getName(), order);
+  }
+
+  public int getDisplayOrder() {
+    return getTable().getOrder(getName());
   }
 }

@@ -13,7 +13,6 @@ package de.mach.tools.neodesigner.core.datamodel;
 
 
 import java.util.List;
-import java.util.Optional;
 
 
 /** Representiert einen Index im Relationalen Datenbankmodel.
@@ -28,17 +27,15 @@ public interface Index extends Node {
     XIE
   }
 
-  /**
-   * fügt ein Feld zum Index hinzu.
+  /** fügt ein Feld zum Index hinzu.
    *
-   * @param f das Feld
-   */
+   * @param f das Feld */
   void addField(Field f);
 
   /** löscht alle Felder des Indexes. */
   void clearFieldList();
 
-  Optional<Field> getFieldByOrder(int order, final boolean ref);
+  Field getFieldByOrder(int order, final boolean ref);
 
   /** Gibt eine nach Reihenfolge sortierte Liste mit allen Feldern dieses Indexes sortiert zurück.
    *
@@ -76,7 +73,7 @@ public interface Index extends Node {
    *
    * @param name Name des Feldes
    * @param order neue Ordnung des Feldes */
-  void setOrder(String name, int order, final boolean ref);
+  void setOrder(String name, int order, final boolean isRef);
 
   /** setter für Type.
    *
@@ -87,4 +84,6 @@ public interface Index extends Node {
    *
    * @param unique boolean ob unique */
   void setUnique(boolean unique);
+
+  boolean hasField(String fieldname);
 }

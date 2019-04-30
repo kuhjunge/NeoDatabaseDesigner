@@ -12,7 +12,6 @@
 package de.mach.tools.neodesigner.core.datamodel.viewimpl;
 
 
-import java.util.Optional;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
@@ -47,8 +46,6 @@ public class ViewForeignKey extends ViewNodeImpl<ForeignKey> implements ForeignK
     refTable = refTbl;
     getNode().setRefTable(refTable);
     refTableName.set(refTable.getName());
-    // TODO: Test schreiben, der Deep Copy Constructor testet (u.a. Order von PK der
-    // RefTable über FK)
   }
 
   /** Konstruktor.
@@ -80,7 +77,7 @@ public class ViewForeignKey extends ViewNodeImpl<ForeignKey> implements ForeignK
   }
 
   @Override
-  public Optional<Field> getFieldOfTableByOrder(final Field refTblField) {
+  public Field getFieldOfTableByOrder(final Field refTblField) {
     return getNode().getFieldOfTableByOrder(refTblField);
   }
 

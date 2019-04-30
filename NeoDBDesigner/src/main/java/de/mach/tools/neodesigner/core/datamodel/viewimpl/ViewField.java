@@ -26,6 +26,7 @@ import de.mach.tools.neodesigner.core.datamodel.Domain.DomainId;
 import de.mach.tools.neodesigner.core.datamodel.Field;
 import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
 import de.mach.tools.neodesigner.core.datamodel.Index;
+import de.mach.tools.neodesigner.core.datamodel.Node;
 import de.mach.tools.neodesigner.core.datamodel.impl.FieldImpl;
 
 
@@ -36,9 +37,11 @@ public class ViewField extends ViewNodeImpl<Field> implements Field {
   private final StringProperty domain = new SimpleStringProperty();
   private final BooleanProperty isRequired = new SimpleBooleanProperty(true);
   private final BooleanProperty isPartOfPrimary = new SimpleBooleanProperty(false);
+  private final StringProperty orderProp = new SimpleStringProperty();
   private boolean modifiedType = false;
   private boolean modifiedReq = false;
   private boolean modifiedPrim = false;
+  private boolean modifiedOrder = false;
 
   /** Konstruktor für den Imprort eines vorhanden Feldes.
    *
@@ -46,7 +49,6 @@ public class ViewField extends ViewNodeImpl<Field> implements Field {
    * @param t Die tabelle dem das neue Feld zugeordnet werden soll */
   public ViewField(final Field f, final ViewTable t) {
     super(new FieldImpl(f.getName(), f.getDomain(), f.getDomainLength(), f.isRequired(), f.getComment(), t), t);
-    getNode().setPartOfPrimaryKey(f.isPartOfPrimaryKey());
     setListener();
   }
 
@@ -123,6 +125,10 @@ public class ViewField extends ViewNodeImpl<Field> implements Field {
     return modifiedPrim;
   }
 
+  public boolean isModifiedOrder() {
+    return modifiedOrder;
+  }
+
   /** View Methode um zu erkennen ob die Eigenschaft Required verändert wurde.
    *
    * @return True wenn die Eigenschaft Required verändert wurde */
@@ -132,12 +138,12 @@ public class ViewField extends ViewNodeImpl<Field> implements Field {
 
   @Override
   public boolean isPartOfPrimaryKey() {
-    return isPartOfPrimary.get();
+    return getNode().isPartOfPrimaryKey();
   }
 
   @Override
   public boolean isRequired() {
-    return isRequired.get();
+    return getNode().isRequired();
   }
 
   /** View Methode um eine Prim Property für die Tabelle in der GUI zu bekommen.
@@ -154,12 +160,17 @@ public class ViewField extends ViewNodeImpl<Field> implements Field {
     return isRequired;
   }
 
+  public StringProperty orderProperty() {
+    return orderProp;
+  }
+
   @Override
   public void saved() {
     super.saved();
     modifiedType = false;
     modifiedReq = false;
     modifiedPrim = false;
+    modifiedOrder = false;
   }
 
   @Override
@@ -199,9 +210,11 @@ public class ViewField extends ViewNodeImpl<Field> implements Field {
 
   /** Setzt die Listener um änderungen im Objekt auch im internen Model zu ändern. */
   private void setListener() {
+    // Initalwerte
     domain.set(Domain.getName(getNode().getDomain()) + getDomainExtra());
     setRequired(getNode().isRequired());
-    setPartOfPrimaryKey(getNode().isPartOfPrimaryKey());
+    orderProp.set((getTable().getFields().size() + 1) + "");
+    // Listener
     domain.addListener((obs, oldValue, newValue) -> setDomainIntern(newValue));
     isRequired.addListener((obs, oldValue, newValue) -> {
       modifiedReq = true;
@@ -211,24 +224,40 @@ public class ViewField extends ViewNodeImpl<Field> implements Field {
     });
     isPartOfPrimary.addListener((obs, oldValue, newValue) -> {
       modifiedPrim = true;
-      getNode().setPartOfPrimaryKey(newValue);
       isPartOfPrimary.set(getNode().isPartOfPrimaryKey());
       isRequired.set(getNode().isRequired());
+      setPartOfPrimaryKey(newValue);
       setModified();
+    });
+    orderProp.addListener((obs, oldVal, newVal) -> {
+      int i = Util.tryParseInt(newVal);
+      if (i != 0) {
+        getNode().setDisplayOrder(i);
+        modifiedOrder = true;
+      }
+      else {
+        orderProp.set(getNode().getDisplayOrder() + "");
+      }
     });
   }
 
-  @Override
+
   public void setPartOfPrimaryKey(final boolean prim) {
-    getNode().setPartOfPrimaryKey(prim);
+    if (getTable().getXpk() != null) {
+      if (prim && !getTable().getXpk().hasField(this.getName())) {
+        getTable().getXpk().addField(this);
+      }
+      else if (!prim && getTable().getXpk().hasField(this.getName())) {
+        getTable().getXpk().removeField(getTable().getXpk().getOrder(this.getName(), false) - 1);
+      }
+    }
     isPartOfPrimary.set(getNode().isPartOfPrimaryKey());
-    isRequired.set(getNode().isRequired());
   }
 
   @Override
-  public void setRequired(final boolean isRequired) {
-    getNode().setRequired(isRequired);
-    this.isRequired.set(getNode().isRequired());
+  public void setRequired(final boolean isReq) {
+    getNode().setRequired(isReq);
+    isRequired.set(isReq);
   }
 
   public void setTypeOfData(final String typeOfData) {
@@ -245,5 +274,23 @@ public class ViewField extends ViewNodeImpl<Field> implements Field {
    * @return Property Eigenschaft für View */
   public StringProperty typeOfDataProperty() {
     return domain;
+  }
+
+  public void setDisplayOrder(int order) {
+    orderProp.setValue(order + "");
+  }
+
+  public int getDisplayOrder() {
+    return getNode().getDisplayOrder();
+  }
+
+  @Override
+  public int compareTo(final Node o) {
+    if (o instanceof Field) {
+      return Integer.compare(getNode().getDisplayOrder(), ((Field) o).getDisplayOrder());
+    }
+    else {
+      return getName().compareToIgnoreCase(o.getName());
+    }
   }
 }

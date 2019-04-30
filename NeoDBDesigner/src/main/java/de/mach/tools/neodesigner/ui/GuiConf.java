@@ -13,9 +13,7 @@ package de.mach.tools.neodesigner.ui;
 
 
 public interface GuiConf {
-  int getLastDatabaseTyp();
-
-  String getPathExportCql();
+  String getPathExportGeneric();
 
   String getPathExportCsv();
 
@@ -37,9 +35,21 @@ public interface GuiConf {
    * @return Datenbankbenutzer */
   String getUser();
 
-  void setLastDatabaseTyp(Integer intValue);
-
-  void setPathExportCql(String parent);
+  void setPathExportGeneric(String parent);
 
   void setPathExportSql(String parent);
+
+  String getNeoDbStarterLocation();
+
+  void setNeoDbStarterLocation(String folder);
+
+  void save();
+
+  boolean getCheckDuplicateIndizes();
+
+  void setCheckDuplicateIndizes(boolean b);
+
+  void setPathExportCsv(String path);
+
+  String getConfigPath();
 }

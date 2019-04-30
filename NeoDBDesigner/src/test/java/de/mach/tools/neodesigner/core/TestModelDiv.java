@@ -17,41 +17,57 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 
-public class TestModelDiv {
+class TestModelDiv {
   @Test
-  public void testConfiguration() {
-    final String adrCheckRes = "bolt\\://127.0.0.1\\:7687";
-    final String startLocCheckRes = "E\\:\\Programme\\Neo4J";
-    final String pwCheckRes = "test";
-    final String usrCheckRes = "MaxMustermann";
-    final int lengthCheckRes = 26;
+  void testConfiguration() {
+    final String adrCheck = "bolt://127.0.0.1\\:7688";
+    final String startLocCheck = "E:\\Programme\\Neo4J";
+    final String pwCheck = "test";
+    final String usrCheck = "MaxMustermann";
+    final int lengthCheck = 26;
     final Configuration conf = new Configuration();
-    conf.init();
-    final String adr = conf.getAddrOfDb();
-    final String startLoc = conf.getNeoDbStarterLocation();
-    final String pw = conf.getPw();
-    final String usr = conf.getUser();
-    final int length = conf.getWordLength();
-    conf.setNeoDbStarterLocation(startLocCheckRes);
-    conf.save(adrCheckRes, usrCheckRes, pwCheckRes);
-    conf.setWordLength(lengthCheckRes);
+    ConfigSaver cs = new MockConfigSaver();
+    conf.init(cs);
+    conf.setNeoDbStarterLocation(startLocCheck);
+    conf.save(adrCheck, usrCheck, pwCheck);
+    conf.setWordLength(lengthCheck);
+    conf.setCheckDuplicateIndizes(true);
+    conf.setMikTexPath("C:\\test\\miktex");
+    conf.setPathExportSql("C:\\test\\sql");
+    conf.setPathExportCsv("C:\\test\\csv");
+    conf.setPathExportGeneric("C:\\test\\cql");
+    conf.setPathImportCat("C:\\test\\cat");
+    conf.setPathImportCsv("C:\\test\\csv2");
+    conf.setPathImportSql("C:\\test\\sql2");
+    conf.setPdfFile("C:\\test\\pdf");
+    conf.setPdfAuthor("cd");
+    conf.setPdfTitle("datamodel");
     conf.save();
-    conf.init();
-    final String adrCheck = conf.getAddrOfDb();
-    final String startLocCheck = conf.getNeoDbStarterLocation();
-    final String pwCheck = conf.getPw();
-    final String usrCheck = conf.getUser();
-    final int lengthCheck = conf.getWordLength();
-    conf.setAddrOfDb(adr);
-    conf.setNeoDbStarterLocation(startLoc);
-    conf.setPw(pw);
-    conf.setUser(usr);
-    conf.setWordLength(length);
-    conf.save();
-    assertTrue(adrCheckRes.contains(adrCheck));
-    assertTrue(startLocCheckRes.contains(startLocCheck));
-    assertTrue(pwCheckRes.contains(pwCheck));
-    assertTrue(usrCheckRes.contains(usrCheck));
-    assertTrue(lengthCheckRes == lengthCheck);
+    // Check ob auslesen klappt
+    final Configuration confC = conf;
+    assertEquals(adrCheck, confC.getAddrOfDb());
+    assertEquals(startLocCheck, confC.getNeoDbStarterLocation());
+    assertEquals(pwCheck, confC.getPw());
+    assertEquals(usrCheck, confC.getUser());
+    assertEquals(lengthCheck, confC.getWordLength());
+    assertTrue(conf.getCheckDuplicateIndizes());
+    assertEquals("C:\\test\\miktex", confC.getMikTexPath());
+    assertEquals("C:\\test\\sql", confC.getPathExportSql());
+    assertEquals("C:\\test\\csv", confC.getPathExportCsv());
+    assertEquals("C:\\test\\cql", confC.getPathExportGeneric());
+    assertEquals("C:\\test\\cat", confC.getPathImportCat());
+    assertEquals("C:\\test\\csv2", confC.getPathImportCsv());
+    assertEquals("C:\\test\\sql2", confC.getPathImportSql());
+    assertEquals("C:\\test\\pdf", confC.getPdfFile());
+    assertEquals("cd", confC.getPdfAuthor());
+    assertEquals("datamodel", confC.getPdfTitle());
+    assertTrue(confC.getConfigPath().contains(Strings.SOFTWARENAME));
+  }
+
+  /** Kann fehlschlagen, wenn Software noch nie auf dem PC benutzt wurde */
+  @Test
+  void testFile() {
+    final Configuration confC = new Configuration();
+    assertNotNull(Util.getFolder(confC.getConfigPath()));
   }
 }

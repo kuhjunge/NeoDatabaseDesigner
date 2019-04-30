@@ -9,7 +9,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox xmlns="http://javafx.com/javafx/8.0.141" xmlns:fx="http://javafx.com/fxml/1">
+<VBox xmlns="http://javafx.com/javafx/8.0.181" xmlns:fx="http://javafx.com/fxml/1">
   <children>
       <HBox alignment="CENTER">
          <children>
@@ -54,6 +54,7 @@
       </HBox>
       <HBox alignment="CENTER_RIGHT" spacing="10.0">
          <children>
+            <Button fx:id="buttonResyncfk" mnemonicParsing="false" onAction="#resyncfk" text="Resync FK" textFill="RED" visible="false" />
             <Button mnemonicParsing="false" onAction="#save" prefHeight="25.0" prefWidth="52.0" text="Save" />
             <Button cancelButton="true" mnemonicParsing="false" onAction="#cancel" text="Cancel" />
          </children>

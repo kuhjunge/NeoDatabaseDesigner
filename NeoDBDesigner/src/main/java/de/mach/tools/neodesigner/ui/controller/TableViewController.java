@@ -18,26 +18,27 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Accordion;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.DataFormat;
+import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 
-import org.controlsfx.validation.Severity;
-import org.controlsfx.validation.ValidationResult;
-import org.controlsfx.validation.ValidationSupport;
-import org.controlsfx.validation.Validator;
-
+import de.mach.tools.neodesigner.core.Validator;
 import de.mach.tools.neodesigner.core.category.CategoryObj;
 import de.mach.tools.neodesigner.core.datamodel.Domain;
 import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
@@ -57,6 +58,8 @@ public class TableViewController implements Initializable {
   private final String[] datatypeArray;
   private ObservableList<CategoryObj> categories;
   private int tabindex = 1;
+  private static final DataFormat SERIALIZED_MIME_TYPE = new DataFormat("application/x-java-serialized-object");
+
 
   // Main
   @FXML
@@ -66,7 +69,7 @@ public class TableViewController implements Initializable {
   private TextField tableNameField;
 
   @FXML
-  private Accordion accordionTable;
+  private TabPane tabSorter;
 
   // Main Buttons
   @FXML
@@ -133,7 +136,7 @@ public class TableViewController implements Initializable {
 
   /** Functions that activates the New Element Function Context Sensitive. */
   void createNew() {
-    final int i = accordionTable.getPanes().indexOf(accordionTable.getExpandedPane());
+    final int i = tabSorter.getTabs().indexOf(tabSorter.getSelectionModel().getSelectedItem());
     switch (i) {
       case 1:
         addField.fire();
@@ -158,10 +161,18 @@ public class TableViewController implements Initializable {
     return nameCol;
   }
 
+  private TableColumn<ViewField, String> createTableRowOrder() {
+    final TableColumn<ViewField, String> nameCol = new TableColumn<>(Strings.TABLEROW_ORDER);
+    nameCol.setCellValueFactory(f -> f.getValue().orderProperty());
+    nameCol.setCellFactory(TextFieldTableCell.forTableColumn());
+    nameCol.setPrefWidth(50);
+    return nameCol;
+  }
+
   /** Erstellt eine Tabellenspalte für die Namensinformation.
    *
    * @return Die Tabellenspalte */
-  private TableColumn<ViewField, String> createTableRowName(final de.mach.tools.neodesigner.core.Validator validator2) {
+  private TableColumn<ViewField, String> createTableRowName(final Validator validator2) {
     final TableColumn<ViewField, String> nameCol = new TableColumn<>(Strings.TABLEROW_NAME);
     nameCol.setCellValueFactory(f -> f.getValue().nameProperty());
     nameCol.setCellFactory(NameCell.forTableColumn(validator2));
@@ -227,7 +238,7 @@ public class TableViewController implements Initializable {
   private void deleteField(final ViewTable t, final TableView<ViewField> tv) {
     final ViewField selectedItem = tv.getSelectionModel().getSelectedItem();
     if (selectedItem != null && !selectedItem.hasIndex()) {
-      t.getDeleteRaw().add(selectedItem);
+      t.addNoteToDeleteList(selectedItem);
       t.setModified();
       tv.getItems().remove(selectedItem);
     }
@@ -240,9 +251,9 @@ public class TableViewController implements Initializable {
   private void deleteForeignkey(final ViewTable t, final TableView<ViewForeignKey> tv) {
     final ViewForeignKey selectedItem = tv.getSelectionModel().getSelectedItem();
     if (selectedItem != null) {
-      t.getDeleteRaw().add(selectedItem);
+      t.addNoteToDeleteList(selectedItem);
       t.getForeignKeys().remove(selectedItem);
-      t.getDeleteRaw().add(selectedItem.getVIndex());
+      t.addNoteToDeleteList(selectedItem.getVIndex());
       t.getIndizesRaw().remove(selectedItem.getVIndex());
       t.setModified();
       tv.getItems().remove(selectedItem);
@@ -259,7 +270,7 @@ public class TableViewController implements Initializable {
   private void deleteIndex(final ViewTable t, final TableView<ViewIndex> tv) {
     final ViewIndex selectedItem = tv.getSelectionModel().getSelectedItem();
     if (selectedItem != null && !selectedItem.hasFk()) {
-      t.getDeleteRaw().add(selectedItem);
+      t.addNoteToDeleteList(selectedItem);
       t.setModified();
       tv.getItems().remove(selectedItem);
     }
@@ -269,13 +280,13 @@ public class TableViewController implements Initializable {
    *
    * @param tbl Die Tabelle
    * @param validator Validator für die validierung des Tabellenamens */
-  public void fillTabWithData(final ViewTable tbl, final de.mach.tools.neodesigner.core.Validator validator) {
+  public void fillTabWithData(final ViewTable tbl, final Validator validator) {
     tableNameField.setText(tbl.getName());
     tableNameField.textProperty().addListener((o, ov, nv) -> {
       tbl.setModified();
       tbl.setName(nv);
     });
-    validator(tableNameField, validator, tbl.getName());
+    GuiUtil.validator(tableNameField, validator, tbl.getName());
     tableComment.setText(tbl.getComment());
     tableComment.textProperty().addListener((o, ov, nv) -> tbl.setModified());
     initComboBox(tbl);
@@ -287,7 +298,7 @@ public class TableViewController implements Initializable {
     generateTableForForeignKeys(tbl);
     deleteForeignkey.setOnAction(e -> deleteForeignkey(tbl, tvForeignkey));
     generateTableForRefTables(tbl);
-    accordionTable.setExpandedPane(accordionTable.getPanes().get(1));
+    tabSorter.getSelectionModel().select(tabSorter.getTabs().get(1));
   }
 
   private void focusNewElement(final TableView<ViewField> tvf, final ViewField f, final ViewTable t) {
@@ -313,7 +324,7 @@ public class TableViewController implements Initializable {
   private void formatTable(final TableView<?> table) {
     table.getSelectionModel().selectFirst();
     table.setEditable(true);
-    table.setPrefHeight(500);
+    table.setPrefHeight(1080);
   }
 
   /** Generiert eine Liste mit Feldnamen und eine Tabellenspalte in der diese angezeigt werden.
@@ -341,15 +352,20 @@ public class TableViewController implements Initializable {
   /** Generiert den Inhalt für die Field Tabelle.
    *
    * @param t die Tabelle
-   * @return den Tableview */
-  private void generateTableForFields(final ViewTable t, final de.mach.tools.neodesigner.core.Validator validator2) {
+   * @param validator2 der Validator */
+  private void generateTableForFields(final ViewTable t, final Validator validator2) {
     tvField.setItems(t.getDataFieldsRaw());
     tvField.getColumns().add(createTableRowName(validator2));
     tvField.getColumns().add(createTableRowTypeOfData());
     tvField.getColumns().add(createTableRowRequired());
     tvField.getColumns().add(createTableRowPrimKey());
+    tvField.getColumns().add(createTableRowOrder());
     tvField.getColumns().add(createTableRowComment());
     formatTable(tvField);
+
+    for (TableColumn c : tvField.getColumns()) {
+      c.setSortable(false);
+    }
 
     tvField.addEventFilter(KeyEvent.KEY_RELEASED, e -> {
       if (e.getCode() == KeyCode.TAB) {
@@ -369,12 +385,63 @@ public class TableViewController implements Initializable {
         GuiUtil.repeatFocus(tvField);
       }
     });
+
+    tvField.setRowFactory(tv -> {
+      TableRow<ViewField> row = new TableRow<>();
+
+      row.setOnDragDetected(event -> {
+        if (!row.isEmpty()) {
+          Integer index = row.getIndex();
+          Dragboard db = row.startDragAndDrop(TransferMode.MOVE);
+          db.setDragView(row.snapshot(null, null));
+          ClipboardContent cc = new ClipboardContent();
+          cc.put(SERIALIZED_MIME_TYPE, index);
+          db.setContent(cc);
+          event.consume();
+        }
+      });
+
+      row.setOnDragOver(event -> {
+        Dragboard db = event.getDragboard();
+        if (db.hasContent(SERIALIZED_MIME_TYPE)) {
+          if (row.getIndex() != (Integer) db.getContent(SERIALIZED_MIME_TYPE)) {
+            event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
+            event.consume();
+          }
+        }
+      });
+
+      row.setOnDragDropped(event -> {
+        Dragboard db = event.getDragboard();
+        if (db.hasContent(SERIALIZED_MIME_TYPE)) {
+          int draggedIndex = (Integer) db.getContent(SERIALIZED_MIME_TYPE);
+          ViewField draggedPerson = tvField.getItems().remove(draggedIndex);
+
+          int dropIndex;
+
+          if (row.isEmpty()) {
+            dropIndex = tvField.getItems().size();
+          }
+          else {
+            dropIndex = row.getIndex();
+          }
+
+          tvField.getItems().add(dropIndex, draggedPerson);
+
+          event.setDropCompleted(true);
+          tvField.getSelectionModel().select(dropIndex);
+          draggedPerson.setDisplayOrder(dropIndex + 1);
+          event.consume();
+        }
+      });
+
+      return row;
+    });
   }
 
   /** Generiert en Tabelleninhalt für die Fremdschlüsseltabelle.
    *
-   * @param t die Tabelle
-   * @return die UI Tabelle mit dem Fremdschlüsseln */
+   * @param t die Tabelle */
   private void generateTableForForeignKeys(final ViewTable t) {
     tvForeignkey.setItems(t.getForeignKeysRaw());
     genForeignKeyTableRows(tvForeignkey);
@@ -382,8 +449,7 @@ public class TableViewController implements Initializable {
 
   /** Generiert den Inhalt der Index Tabelle.
    *
-   * @param t Die Tabelle
-   * @return Tableview für Index */
+   * @param t Die Tabelle */
   private void generateTableForIndizies(final ViewTable t) {
     tvIndex.setItems(t.getIndizesRaw());
     tvIndex.getColumns().add(createTableRowNameIndex());
@@ -399,8 +465,7 @@ public class TableViewController implements Initializable {
 
   /** Erstellt eine Liste mit allen foreignkeys die auf diese Tabell zeigen.
    *
-   * @param t Table
-   * @return TableView */
+   * @param t Table */
   private void generateTableForRefTables(final ViewTable t) {
     final ObservableList<ViewForeignKey> foreignKeys = FXCollections.observableArrayList();
     for (final ForeignKey i : t.getRefForeignKeys()) {
@@ -422,6 +487,7 @@ public class TableViewController implements Initializable {
     thisTable.setCellFactory(TextFieldTableCell.forTableColumn());
     thisTable.setEditable(false);
     table.getColumns().add(thisTable);
+
     // Fields
     final TableColumn<ViewForeignKey, String> refTable = new TableColumn<>(Strings.NAME_REFTABLE);
     refTable.setCellValueFactory(f -> f.getValue().getVRefTable().nameProperty());
@@ -537,6 +603,8 @@ public class TableViewController implements Initializable {
     final ViewField f = new ViewField(Strings.NAME_NEWFIELD, Domain.DomainId.STRING, 20, false, t, Strings.EMPTYSTRING);
     if (!t.getDataFieldsRaw().contains(f)) {
       focusNewElement(tvf, f, t);
+      // Sollte ein bereits gelöschtes Feld hinzugefügt werden, dann muss es wieder aus der Löschliste entfernt werden
+      // t.getDeleteRaw().remove(f);
     }
   }
 
@@ -549,20 +617,5 @@ public class TableViewController implements Initializable {
 
   public void setCategoryLookup(final ObservableList<CategoryObj> obsArrList) {
     categories = obsArrList;
-  }
-
-  /** Erzeugt die Validierungsanzeige für die Tabelle.
-   *
-   * @param textfield das Feld in dem die Validierung angezeigt werden soll
-   * @param validator2 der Validator für die Tabelle
-   * @param string der alte Name der Tabelle */
-  private void validator(final TextField textfield, final de.mach.tools.neodesigner.core.Validator validator2,
-                         final String string) {
-    final ValidationSupport support = new ValidationSupport();
-    final Validator<String> validator = (control, value) -> {
-      final boolean condition = value != null && !validator2.validateTableName(value, string);
-      return ValidationResult.fromMessageIf(control, validator2.getLastError(), Severity.ERROR, condition);
-    };
-    support.registerValidator(textfield, false, validator);
   }
 }

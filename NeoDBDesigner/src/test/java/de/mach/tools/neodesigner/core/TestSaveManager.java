@@ -14,46 +14,70 @@ package de.mach.tools.neodesigner.core;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 
 import de.mach.tools.neodesigner.core.datamodel.Field;
 import de.mach.tools.neodesigner.core.datamodel.Table;
+import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewTable;
 
 
-public class TestSaveManager {
+class TestSaveManager {
   @Test
-  public void testInsertFk() {
+  void testInsertFk() {
     final Table test = TestUtil.getExampleTable();
     final MockSave s = new MockSave();
     final SaveManager saveManager = new SaveManager(s);
     s.retTable = test.getForeignKeys().get(0).getRefTable();
     saveManager.saveNewForeignKey(test.getForeignKeys().get(0), test);
-    assertTrue(s.insertedForeignKey.compareTo(test.getForeignKeys().get(0)) == 0);
-    assertTrue(s.insertedForeignKey.equals(test.getForeignKeys().get(0)));
-    assertTrue(s.insertedForeignKey.getRefTable().compareTo(test.getForeignKeys().get(0).getRefTable()) == 0);
-    assertTrue(s.insertedForeignKey.getIndex().compareTo(test.getForeignKeys().get(0).getIndex()) == 0);
+    assertEquals(0, s.insertedForeignKey.compareTo(test.getForeignKeys().get(0)));
+    assertEquals(s.insertedForeignKey, test.getForeignKeys().get(0));
+    assertEquals(0, s.insertedForeignKey.getRefTable().compareTo(test.getForeignKeys().get(0).getRefTable()));
+    assertEquals(0, s.insertedForeignKey.getIndex().compareTo(test.getForeignKeys().get(0).getIndex()));
     assertTrue(!(s.insertedForeignKey == test.getForeignKeys().get(0)));
   }
 
   @Test
-  public void testRenameField() {
+  void testRenameField() {
     final Table test = TestUtil.getExampleTable();
     final MockSave s = new MockSave();
     final SaveManager saveManager = new SaveManager(s);
-    final Field f = test.getField("Feld").get();
+    final Field f = test.getField("Feld");
     f.setName("FeldNeu");
     saveManager.changeFieldName(f, "Feld");
-    assertTrue(s.changeNodeNameFromTable.compareTo("Feld" + test.getName() + "FeldNeu") == 0);
+    assertEquals(0, s.changeNodeNameFromTable.compareTo("Feld" + test.getName() + "FeldNeu"));
   }
 
   @Test
-  public void testRenameFieldPrim() {
+  void testRenameFieldPrim() {
     final Table test = TestUtil.getExampleTable();
     final MockSave s = new MockSave();
     final SaveManager saveManager = new SaveManager(s);
-    final Field f = test.getField("FeldZwei").get();
+    final Field f = test.getField("FeldZwei");
     f.setName("FeldZweiNeu");
     saveManager.changeFieldName(f, "FeldZwei");
-    assertTrue(s.changeNodeNameFromTable.compareTo("FeldZwei" + test.getName() + "FeldZweiNeu") == 0);
+    assertEquals(0, s.changeNodeNameFromTable.compareTo("FeldZwei" + test.getName() + "FeldZweiNeu"));
+  }
+
+  @Test
+  void testTableProcessing() {
+    Model m = TestUtil.getDatamodel();
+    Optional<Table> origTbl = m.getTable("TABLE1");
+    assertTrue(origTbl.isPresent());
+    final SaveManager saveManager = new SaveManager(m.getSaveObj());
+    saveManager.deleteNode(origTbl.get());
+    origTbl = m.getTable("TABLE1");
+    assertTrue(!origTbl.isPresent());
+    origTbl = m.getTable("TABLE0");
+    ViewTable vt = new ViewTable(origTbl.get(), true);
+    saveManager.processTable("TABLE0-1", "10,0", "Test", vt);
+    origTbl = m.getTable("TABLE0");
+    assertTrue(!origTbl.isPresent());
+    origTbl = m.getTable("TABLE0-1");
+    assertTrue(origTbl.isPresent());
+    assertEquals("TABLE0-1", origTbl.get().getName());
+    assertEquals("10,0", origTbl.get().getCategory());
+    assertEquals("Test", origTbl.get().getComment());
   }
 }

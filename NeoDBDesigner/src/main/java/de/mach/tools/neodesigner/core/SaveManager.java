@@ -15,15 +15,24 @@ package de.mach.tools.neodesigner.core;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import de.mach.tools.neodesigner.core.datamodel.Domain.DomainId;
 import de.mach.tools.neodesigner.core.datamodel.Field;
 import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
 import de.mach.tools.neodesigner.core.datamodel.Index;
+import de.mach.tools.neodesigner.core.datamodel.Node;
 import de.mach.tools.neodesigner.core.datamodel.Table;
 import de.mach.tools.neodesigner.core.datamodel.impl.FieldImpl;
 import de.mach.tools.neodesigner.core.datamodel.impl.ForeignKeyImpl;
 import de.mach.tools.neodesigner.core.datamodel.impl.IndexImpl;
+import de.mach.tools.neodesigner.core.datamodel.impl.TableImpl;
+import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewField;
+import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewForeignKey;
+import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewIndex;
+import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewNodeImpl;
+import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewTable;
 
 
 /** Save Manager, welche komplexere Speichervorgänge im Datenmodel regelt.
@@ -31,6 +40,7 @@ import de.mach.tools.neodesigner.core.datamodel.impl.IndexImpl;
  * @author cd */
 public class SaveManager {
   private final Save save;
+  private static final Logger LOG = Logger.getLogger(SaveManager.class.getName());
 
   public SaveManager(final Save m) {
     save = m;
@@ -40,7 +50,7 @@ public class SaveManager {
    *
    * @param tf das Feld
    * @param oldName der "alte Name" des Feldes */
-  public void changeFieldName(final Field tf, final String oldName) {
+  void changeFieldName(final Field tf, final String oldName) {
     save.changeNodeNameFromTable(oldName, tf.getTable().getName(), tf.getName(), tf.getNodeType());
   }
 
@@ -110,9 +120,9 @@ public class SaveManager {
     Field f = null;
     final Optional<Table> originTable = save.getTable(tablename);
     if (originTable.isPresent()) {
-      final Optional<Field> field = originTable.get().getField(fieldname);
-      if (field.isPresent()) {
-        f = field.get();
+      final Field field = originTable.get().getField(fieldname);
+      if (field != null) {
+        f = field;
       }
     }
     return f;
@@ -124,8 +134,8 @@ public class SaveManager {
    * @param newDataType der neue domaintyp
    * @param length die neue domainlänge
    * @param tablename der Tabellenname */
-  public void changeFieldDataType(final String fieldname, final DomainId newDataType, final int length,
-                                  final String tablename) {
+  private void changeFieldDataType(final String fieldname, final DomainId newDataType, final int length,
+                                   final String tablename) {
     final Field field = getField(fieldname, tablename);
     if (field != null && !(field.getDomain().equals(newDataType) && field.getDomainLength() == length)) {
       // umbenennen
@@ -150,7 +160,7 @@ public class SaveManager {
    * @param nodename das Feld
    * @param tablename die Tabelle
    * @param partOfPrimaryKey der Primärschlüssel */
-  public void changeFieldIsPartOfPrim(final String nodename, final String tablename, final boolean partOfPrimaryKey) {
+  private void changeFieldIsPartOfPrim(final String nodename, final String tablename, final boolean partOfPrimaryKey) {
     final Field field = getField(nodename, tablename);
     if (field != null) {
       if (!field.isPartOfPrimaryKey() && partOfPrimaryKey) {
@@ -168,7 +178,7 @@ public class SaveManager {
    *
    * @param tf der Index
    * @param table die Datenmodell Tabelle */
-  public void changeDatafields(final Index tf, final Table table) {
+  private void changeDatafields(final Index tf, final Table table) {
     final Index newIndex = new IndexImpl(tf.getName(), table);
     for (final Field f : tf.getFieldList()) {
       newIndex.addField(f);
@@ -180,7 +190,7 @@ public class SaveManager {
    *
    * @param dmt die Tabelle
    * @param vfk der Fremdschlüssel */
-  public void saveNewForeignKey(final ForeignKey vfk, final Table dmt) {
+  void saveNewForeignKey(final ForeignKey vfk, final Table dmt) {
     final ForeignKey fk = new ForeignKeyImpl(vfk.getName(), dmt);
     final Optional<Table> opRefTab = save.getTable(vfk.getRefTable().getName());
     fk.setIndex(dmt.getIndizies().get(dmt.getIndizies().indexOf(vfk.getIndex())));
@@ -189,4 +199,184 @@ public class SaveManager {
       save.insertNewForeignKey(fk);
     });
   }
+
+  /** Speichert die Felder einer Tabelle.
+   *
+   * @param t die tabelle
+   * @param table Datenmodell Tabelle */
+  private void saveData(final ViewTable t, final Table table) {
+    for (final ViewField tf : t.getDataFieldsRaw()) {
+      if (tf.isNewCreated()) {
+        // Speichere neue Felder
+        save.insertNewField(new FieldImpl(tf.getName(), tf.getDomain(), tf.getDomainLength(), tf.isRequired(),
+                                          tf.getComment(), table));
+        if (tf.isModifiedPrim()) {
+          changeFieldIsPartOfPrim(tf.getName(), t.getName(), tf.isPartOfPrimaryKey());
+        }
+        if (tf.isModifiedOrder()) {
+          save.changeOrder(tf.getName(), table.getName(), tf.getDisplayOrder());
+        }
+        tf.saved();
+      }
+      else {
+        saveFieldChanges(t, tf);
+        tf.saved();
+      }
+    }
+    // Übertragen der neuen Fremdschlüsselordnung
+    if (t.getNewXpkOrder() != null) {
+      save.changeXpkOrder(t.getName(), t.getNewXpkOrder());
+    }
+  }
+
+  /** Speichert Änderungen für ein existierendes Feld.
+   *
+   * @param t die Tabelle zu dem das Feld gehört
+   * @param tf das Feld */
+  private void saveFieldChanges(final ViewTable t, final ViewField tf) {
+    if (tf.isModifiedName()) {
+      changeFieldName(tf, tf.getOldName());
+    }
+    if (tf.isModifiedReq()) {
+      save.changeFieldRequired(tf.getName(), t.getName(), tf.isRequired());
+    }
+    if (tf.isModifiedPrim()) {
+      changeFieldIsPartOfPrim(tf.getName(), t.getName(), tf.isPartOfPrimaryKey());
+    }
+    if (tf.isModifiedDomain()) {
+      changeFieldDataType(tf.getName(), tf.getDomain(), tf.getDomainLength(), t.getName());
+    }
+    if (tf.isModifiedComment()) {
+      save.changeComment(tf.getName(), t.getName(), tf.getComment());
+    }
+    if (tf.isModifiedOrder()) {
+      save.changeOrder(tf.getName(), t.getName(), tf.getDisplayOrder());
+    }
+  }
+
+  /** Speichert den Fremdschlüssel.
+   *
+   * @param t die Tabelle
+   * @param table Datenmodell Tabelle */
+  private void saveForeignKeys(final ViewTable t, final Table table) {
+    for (final ViewForeignKey vfk : t.getForeignKeysRaw()) {
+      if (vfk.isNewCreated()) {
+        saveNewForeignKey(vfk, table);
+      }
+      else if (vfk.isModifiedName()) {
+        save.changeNodeNameFromTable(vfk.getOldName(), t.getName(), vfk.getName(), vfk.getNodeType());
+      }
+
+      if (vfk.isModifiedRel()) {
+        for (final Field f : vfk.getIndex().getFieldList()) {
+          save.changeFkRelations(vfk.getName(), t.getName(), vfk.getRefTable().getName(), vfk.getIndex().getName(),
+                                 f.getName(), vfk.getIndex().getOrder(f.getName(), true));
+        }
+      }
+      vfk.saved();
+    }
+  }
+
+
+  /** Speichert Indizes.
+   *
+   * @param t die Tabelle
+   * @param table die Datenmodell Tabelle */
+  private void saveIndizies(final ViewTable t, final Table table) {
+    for (final ViewIndex tf : t.getIndizesRaw()) {
+      if (tf.getType() != Index.Type.XPK) {
+        if (tf.isNewCreated()) {
+          save.insertNewIndex(new IndexImpl(tf.getName(), table));
+        }
+        else if (tf.isModifiedName()) {
+          save.changeIndexUnique(tf.getOldName(), t.getName(), tf.isUnique());
+          save.changeNodeNameFromTable(tf.getOldName(), t.getName(), tf.getName(), tf.getNodeType());
+        }
+        if (tf.isModifiedDatafields()) {
+          changeDatafields(tf, table);
+        }
+        tf.saved();
+      }
+    }
+  }
+
+  /** erstellt eine neue Tabelle.
+   *
+   * @param newName neuer Name
+   * @param newCat neue Kategorie
+   * @param newComment neues kommentar
+   * @param t die Tabelle
+   * @return neuer Name der Tabelle */
+  private String createTable(final String newName, final String newCat, final String newComment, final ViewTable t) {
+    final TableImpl newTable = new TableImpl(t);
+    newTable.setName(newName);
+    newTable.setCategory(newCat);
+    newTable.setXpk(new IndexImpl(t.getXpk(), newTable));
+    newTable.setComment(newComment);
+    save.insertNewTable(newTable);
+    save.insertNewIndex(newTable.getXpk());
+    return newTable.getName();
+  }
+
+  /** Speichert eine Tabelle.
+   * 
+   * @param newName neuer Name
+   * @param newCategory Neue Kategorie
+   * @param newComment Neues Kommentar
+   * @param t die Tabelle
+   * @return Boolean Namensänderung ja/nein */
+  private boolean saveTable(final String newName, final String newCategory, final String newComment,
+                            final ViewTable t) {
+    boolean nameChanged = false;
+    // Speichere neuenTabellennamen
+    if (!t.getOldName().equals(newName)) {
+      save.changeTableName(t.getOldName(), newName, t.getXpk().getName());
+      t.setName(newName);
+      nameChanged = true;
+    }
+    // Speichere neue Kategorie
+    if (!t.getCategory().equals(newCategory)) {
+      save.changeTableCategory(t.getName(), newCategory);
+    }
+    // Speichere neues Kommentar
+    if (!t.getComment().equals(newComment)) {
+      save.changeComment(t.getName(), newComment);
+    }
+    return nameChanged;
+  }
+
+  public void deleteNode(Node t) {
+    save.deleteNode(t);
+  }
+
+  private Table getTable(String name) {
+    return save.getTable(name).orElse(null);
+  }
+
+  public String processTable(final String newName, final String newCategory, final String newComment, ViewTable t) {
+    String newGeneratedName = newName;
+    if (t.isNewCreated()) { // füge neue Tabelle ein
+      newGeneratedName = createTable(newName, newCategory, newComment, t);
+    }
+    else {
+      if (saveTable(newName, newCategory, newComment, t)) {
+        newGeneratedName = t.getName();
+      }
+      for (final ViewNodeImpl<?> tf : t.getNodesToDelete()) {
+        save.deleteNode(tf.getNode());
+      }
+    }
+    final Table dbtable = getTable(t.getName());
+    if (dbtable != null) {
+      saveData(t, dbtable);
+      saveIndizies(t, dbtable);
+      saveForeignKeys(t, dbtable);
+    }
+    else {
+      LOG.log(Level.WARNING, () -> Strings.LOG_COULDNOTSAVE + t.getName());
+    }
+    t.saved();
+    return newGeneratedName;
+  }
+
 }

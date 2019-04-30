@@ -12,45 +12,50 @@
 package de.mach.tools.neodesigner.ui;
 
 
-import javafx.scene.Scene;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.MouseButton;
+import static org.testfx.api.FxAssert.verifyThat;
+import static org.testfx.util.NodeQueryUtils.hasText;
+
+import java.io.IOException;
 import javafx.stage.Stage;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.testfx.api.FxToolkit;
-import org.testfx.framework.junit.ApplicationTest;
+import org.testfx.framework.junit5.ApplicationExtension;
+import org.testfx.framework.junit5.Start;
 
 
-public class TestGui extends ApplicationTest implements AfterEachCallback, BeforeEachCallback {
+@ExtendWith(ApplicationExtension.class)
+public class TestGui implements AfterEachCallback, BeforeEachCallback {
 
 
   @BeforeAll
-  public static void setUp() {}
+  static void setUp() {}
 
-  @Override
-  public void start(Stage stage) throws Exception {
-    NeoDbDesignerStarter starter = new NeoDbDesignerStarter();
-    Scene scene = starter.startMainStage(stage);
+  @Start
+  void onStart(Stage stage) throws IOException {
+    Starter s = new Starter();
+    s.startMainStage(stage);
   }
 
-/* @Test void should_click_on_button() { Button button = lookup("#openTable").queryButton();
- * assertThat(button).hasText("Open"); } */
+  @Test
+  void should_contain_button() {
+    // expect:
+    verifyThat("#buttonDbConnect", hasText("Load"));
+  }
 
   @AfterAll
-  public static void tearDown() {}
+  static void tearDown() {}
 
   @Override
   public void beforeEach(ExtensionContext context) {}
 
   @Override
-  public void afterEach(ExtensionContext context) throws Exception {
-    FxToolkit.hideStage();
-    release(new KeyCode[] {});
-    release(new MouseButton[] {});
+  public void afterEach(ExtensionContext context) {
+
   }
 }

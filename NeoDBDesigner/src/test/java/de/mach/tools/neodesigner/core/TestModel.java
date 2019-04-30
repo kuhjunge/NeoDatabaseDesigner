@@ -17,12 +17,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Observable;
-import javafx.concurrent.Task;
 
 import org.junit.jupiter.api.Test;
 
-import de.mach.tools.neodesigner.core.category.CategoryTranslator;
 import de.mach.tools.neodesigner.core.datamodel.Domain.DomainId;
 import de.mach.tools.neodesigner.core.datamodel.Field;
 import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
@@ -33,143 +30,111 @@ import de.mach.tools.neodesigner.core.datamodel.impl.FieldImpl;
 import de.mach.tools.neodesigner.core.datamodel.impl.ForeignKeyImpl;
 import de.mach.tools.neodesigner.core.datamodel.impl.IndexImpl;
 import de.mach.tools.neodesigner.core.datamodel.impl.TableImpl;
-import de.mach.tools.neodesigner.core.nimport.ImportTask;
-import de.mach.tools.neodesigner.database.cypher.DatabaseConnectorImpl;
-import de.mach.tools.neodesigner.database.cypher.DatabaseManagerLean;
-import de.mach.tools.neodesigner.database.cypher.DatabaseMockConnector;
-import de.mach.tools.neodesigner.database.local.DataModelManager;
+import de.mach.tools.neodesigner.inex.cypher.DatabaseMockConnector;
 
 
-public class TestModel {
-  public static final String tableName = "Testtabelle";
-  public static final String indexName = "XAK1TestIndex";
-  public static final String indexName2 = "XAK3TestIndex";
-  public static final String indexName3 = "XAK2TestIndex";
-  public static final String indexName4 = "XAK4TestIndex";
-  public static final String indexName5 = "XAK5TestIndex";
-  public static final String indexName6 = "XAK6TestIndex";
-  public static final String indexName7 = "XAK7TestIndex";
-  public static final String indexName8 = "XAK8TestIndex";
-  public static final String indexName9 = "XAK9TestIndex";
-  public static final String indexName10 = "XAK10TestIndex";
+class TestModel {
+  private static final String tableName = "Testtabelle";
+  private static final String indexName = "XAK1TestIndex";
+  private static final String indexName2 = "XAK3TestIndex";
+  private static final String indexName3 = "XAK2TestIndex";
+  private static final String indexName4 = "XAK4TestIndex";
+  private static final String indexName5 = "XAK5TestIndex";
+  private static final String indexName6 = "XAK6TestIndex";
+  private static final String indexName7 = "XAK7TestIndex";
+  private static final String indexName8 = "XAK8TestIndex";
+  private static final String indexName9 = "XAK9TestIndex";
+  private static final String indexName10 = "XAK10TestIndex";
 
   @Test
-  public void testCsvImportTask() {
-    final ModelImpl m = new ModelImpl(new DatabaseMockConnector(), new CategoryTranslator());
-    final ImportTask it = m.importTask("\"test\", \"1,2\"", 'c', "",
-                                       new DatabaseManagerLean(new DatabaseMockConnector()));
-    final Thread t = new Thread(it);
-    t.start();
-    try {
-      t.join();
-      assertTrue(!t.isAlive());
-      assertTrue(it.isDone());
-    }
-    catch (final InterruptedException e) {
-      fail("couldn't wait for Process");
-      e.printStackTrace();
-    }
-  }
-
-  @Test
-  public void testLoadFromDb() {
-    final DatabaseMockConnector dmc = new DatabaseMockConnector();
-    final Model m = new ModelImpl(dmc, new CategoryTranslator());
-    try {
-      final Task<List<Table>> t = m.loadFromDbTask();
-      final Thread th = new Thread(t);
-      th.start();
-      th.join();
-      assertTrue(t.isDone());
-    }
-    catch (final Exception e) {
-      e.printStackTrace();
-      fail("task failed");
-    }
-  }
-
-  @Test
-  public void testModelGeneral() {
-    final DatabaseMockConnector dmc = new DatabaseMockConnector();
-    final Model m = new ModelImpl(dmc, new MockCategoryTranslator());
-    dmc.addr = m.getAddrOfDb();
-    dmc.nutzername = m.getGuiConf().getUser();
-    dmc.pw = m.getGuiConf().getPw();
-    assertTrue(m.getSaveObj().getTables().size() == 0);
-    assertTrue(!m.isOnline());
-    m.connectDb(m.getAddrOfDb(), m.getGuiConf().getPw(), m.getGuiConf().getUser() + m.getGuiConf().getPw());
-    assertTrue(!m.isOnline());
-    m.connectDb(m.getAddrOfDb(), m.getGuiConf().getUser(), m.getGuiConf().getPw());
-    assertTrue(m.isOnline());
-    final Observable o = m.dataModelObservable();
-    assertTrue(o != null);
-    final Table t = m.getnewTable("Name");
-    assertTrue("Name".equals(t.getName()));
+  void testModelGeneral() {
+    final Model m = new ModelImpl(new MockConfigSaver(), new MockConfigSaver());
+    assertEquals(0, m.getSaveObj().getTables().size());
+    m.connect();
+    final Table t = m.getNewTable("Name");
+    assertEquals("Name", t.getName());
     final Save s = m.getSaveObj();
-    assertTrue(s != null);
+    assertNotNull(s);
     s.insertNewTable(t);
     final Table res = m.getTable("Name").get();
-    assertTrue(res.equals(t));
+    assertEquals(res, t);
     m.getListWithTableNames();
-    assertTrue("MATCH(t:Table) RETURN t.name AS name ORDER BY name".equals(dmc.lastQuery));
-    assertTrue(m.getNextFkNumber(0) == 101);
-    m.disconnectDb();
-    assertTrue(!m.isOnline());
-    assertTrue(!m.getTable("Name").isPresent());
-    m.connectDb(m.getAddrOfDb(), m.getGuiConf().getUser(), m.getGuiConf().getPw());
+    assertEquals(101, m.getNextFkNumber(0));
     m.deleteDatabase();
     assertTrue(!m.getTable("Name").isPresent());
-    m.addTableList(TestUtil.getTableList());
+    m.deleteDatabase();
+    assertTrue(!m.getTable("Name").isPresent());
+    m.importTables(TestUtil.getTableList());
     assertTrue(m.getTable("Table1").isPresent());
-    assertTrue(m.getAllTables().size() == 5);
-    assertTrue(m.getValidator() != null);
+    assertEquals(5, m.getAllTables().size());
+    assertNotNull(m.getValidator());
     m.saveCategoryList(TestUtil.getCatList());
-    assertTrue(m.getCategorySelection().toString()
-        .equals("[(0,0) Cat0(id: 0 sid: 1), (1) Cat1(id: 0 sid: 2), (1,1) Cat1a(id: 0 sid: 3), (1,2) Cat1b(id: 0 sid: 4), (1,3) "
-                + "Cat1c(id: 0 sid: 5), (1,4) Cat1d(id: 0 sid: 6), (1,5) Cate(id: 0 sid: 7)]"));
+    assertEquals("[(0,0) Cat0(id: 0 sid: 1), (1) Cat1(id: 0 sid: 2), (1,1) Cat1a(id: 0 sid: 3), (1,2) Cat1b(id: 0 sid: 4), (1,3) "
+                 + "Cat1c(id: 0 sid: 5), (1,4) Cat1d(id: 0 sid: 6), (1,5) Cate(id: 0 sid: 7)]",
+                 m.getCategorySelection().toString());
   }
 
   @Test
-  public void testModelGeneral2() {
+  void testFkNumberGenerator() {
+    final Model m = new ModelImpl(new MockConfigSaver(), new MockConfigSaver());
+    assertEquals(101, m.getNextFkNumber(0));
+    assertEquals(103, m.getNextFkNumber(102));
+    // Testtabelle aufbauen mit einen FK
+    Table t = new TableImpl("test");
+    t.addField(new FieldImpl("reffield"));
+    t.addIndex(new IndexImpl("XIF123", t));
+    t.addForeignKey(new ForeignKeyImpl("R_222", t), false);
+    Table rt = new TableImpl("testRefTable");
+    rt.addField(new FieldImpl("reffield"));
+    t.getForeignKeys().get(0).setIndex(t.getIndizies().get(0));
+    t.getForeignKeys().get(0).setRefTable(rt);
+    m.importTables(Arrays.asList(t, rt));
+    assertEquals(223, m.getNextFkNumber(220));
+    assertEquals(224, m.getNextFkNumber(223));
+    assertEquals(1001, m.getNextFkNumber(991));
+    assertEquals(10001, m.getNextFkNumber(9991));
+  }
+
+  @Test
+  void testModelGeneral2() {
     final DatabaseMockConnector dmc = new DatabaseMockConnector();
-    final Model m = new ModelImpl(dmc, new MockCategoryTranslator());
+    final Model m = new ModelImpl(new MockConfigSaver(), new MockConfigSaver());
     dmc.addr = m.getAddrOfDb();
     dmc.nutzername = m.getGuiConf().getUser();
     dmc.pw = m.getGuiConf().getPw();
-    m.connectDb(m.getAddrOfDb(), m.getGuiConf().getUser(), m.getGuiConf().getPw());
-    assertTrue(m.isOnline());
-    assertTrue(null != m.getGuiConf().getPathImportSql());
-    assertTrue(null != m.getGuiConf().getPathImportCat());
-    assertTrue(null != m.getGuiConf().getPathImportCsv());
-    assertTrue(null != m.getGuiConf().getPathExportSql());
-    assertTrue(null != m.getGuiConf().getPathExportCsv());
-    assertTrue(null != m.getGuiConf().getPathExportCql());
+    m.connect();
+    assertNotNull(m.getGuiConf().getPathImportSql());
+    assertNotNull(m.getGuiConf().getPathImportCat());
+    assertNotNull(m.getGuiConf().getPathImportCsv());
+    assertNotNull(m.getGuiConf().getPathExportSql());
+    assertNotNull(m.getGuiConf().getPathExportCsv());
+    assertNotNull(m.getGuiConf().getPathExportGeneric());
   }
 
   @Test
-  public void testModelGetConfig() {
-    final Model m = new ModelImpl(new DatabaseConnectorImpl(), new CategoryTranslator());
+  void testModelGetConfig() {
+    final Model m = new ModelImpl(new MockConfigSaver(), new MockConfigSaver());
     final Configuration config = new Configuration();
-    config.init();
-    assertTrue(m.getAddrOfDb().equals(config.getAddrOfDb()));
-    assertTrue(m.getGuiConf().getPw().equals(config.getPw()));
-    assertTrue(m.getGuiConf().getUser().equals(config.getUser()));
-    assertTrue(Arrays.equals(m.getSelectDatatype(), config.getSelectDataType()));
-    assertTrue(m.getWordLength() == config.getWordLength());
+    config.init(new MockConfigSaver());
+    assertEquals(m.getAddrOfDb(), config.getAddrOfDb());
+    assertEquals(m.getGuiConf().getPw(), config.getPw());
+    assertEquals(m.getGuiConf().getUser(), config.getUser());
+    assertArrayEquals(m.getSelectDatatype(), config.getSelectDataType());
+    assertEquals(m.getWordLength(), config.getWordLength());
   }
 
   @Test
-  public void testModelGetIndexNumber() {
+  void testModelGetIndexNumber() {
     final Table t = new TableImpl(TestModel.tableName);
     final List<Index> li = new ArrayList<>();
     li.add(new IndexImpl(TestModel.indexName, Type.XAK, t));
     li.add(new IndexImpl(TestModel.indexName2, Type.XAK, t));
-    final Model m = new ModelImpl(new DatabaseConnectorImpl(), new CategoryTranslator());
-    assertTrue(m.getNextNumberForIndex(li) == 2);
+    final Model m = new ModelImpl(new MockConfigSaver(), new MockConfigSaver());
+    assertEquals(2, (int) m.getNextNumberForIndex(li));
   }
 
   @Test
-  public void testModelGetIndexNumber2() {
+  void testModelGetIndexNumber2() {
     final Table t = new TableImpl(TestModel.tableName);
     final List<Index> li = new ArrayList<>();
     li.add(new IndexImpl(TestModel.indexName, Type.XAK, t));
@@ -182,16 +147,16 @@ public class TestModel {
     li.add(new IndexImpl(TestModel.indexName8, Type.XAK, t));
     li.add(new IndexImpl(TestModel.indexName9, Type.XAK, t));
     li.add(new IndexImpl(TestModel.indexName10, Type.XAK, t));
-    final Model m = new ModelImpl(new DatabaseConnectorImpl(), new CategoryTranslator());
-    assertTrue(m.getNextNumberForIndex(li) == 11);
+    final Model m = new ModelImpl(new MockConfigSaver(), new MockConfigSaver());
+    assertEquals(11, (int) m.getNextNumberForIndex(li));
   }
 
   @Test
-  public void testNameValidation() {
+  void testNameValidation() {
     final Save save = new DataModelManager();
     final Validator v = new Validator(18, 18, 15, save);
     assertTrue(v.validateName("TestName"));
-    assertTrue(v.getLastError().equals(""));
+    assertEquals("", v.getLastError());
     assertTrue(!v.validateName("CONSTRAINT"));
     assertTrue(!v.getLastError().equals(""));
     assertTrue(v.validateName("666HellOfATable"));
@@ -200,26 +165,14 @@ public class TestModel {
     assertTrue(!v.validateName("ThisIsAVeryLongTableNameThatShouldNeverBeUsed"));
     assertTrue(!v.getLastError().equals(""));
   }
+  /* @Test public void testSqlImportTask() { final ModelImpl m = new ModelImpl(new DatabaseMockConnector(), new
+   * CategoryTranslator()); final ImportTask it = m.importTask("", 's', "", new DatabaseManagerLean(new
+   * DatabaseMockConnector())); final Thread t = new Thread(it); t.start(); try { t.join(); assertTrue(!t.isAlive());
+   * assertTrue(it.isDone()); } catch (final InterruptedException e) { fail("couldn't wait for Process");
+   * e.printStackTrace(); } } */
 
   @Test
-  public void testSqlImportTask() {
-    final ModelImpl m = new ModelImpl(new DatabaseMockConnector(), new CategoryTranslator());
-    final ImportTask it = m.importTask("", 's', "", new DatabaseManagerLean(new DatabaseMockConnector()));
-    final Thread t = new Thread(it);
-    t.start();
-    try {
-      t.join();
-      assertTrue(!t.isAlive());
-      assertTrue(it.isDone());
-    }
-    catch (final InterruptedException e) {
-      fail("couldn't wait for Process");
-      e.printStackTrace();
-    }
-  }
-
-  @Test
-  public void testTableValidation() {
+  void testTableValidation() {
     final Save save = new DataModelManager();
     final Validator v = new Validator(18, 18, 15, save);
     Table t = new TableImpl("Table");
@@ -244,7 +197,7 @@ public class TestModel {
     t.getForeignKeys().add(fk);
     t.setXpk(xpk);
     assertTrue(v.validateTable(t, false));
-    assertTrue(v.getLastError().equals(""));
+    assertEquals("", v.getLastError());
     t = new TableImpl("Tab!le");
     fk = new ForeignKeyImpl("R_100", t);
     fk.setRefTable(null);
@@ -256,32 +209,32 @@ public class TestModel {
   }
 
   @Test
-  public void testUtilIsInteger() {
+  void testUtilIsInteger() {
     assertTrue(Util.isInteger("0"));
     assertTrue(Util.isInteger("-1"));
-    assertTrue(!Util.isInteger("-"));
+    assertFalse(Util.isInteger("-"));
     assertTrue(Util.isInteger("-999"));
     assertTrue(Util.isInteger("999"));
-    assertTrue(!Util.isInteger("a"));
-    assertTrue(!Util.isInteger("1,"));
-    assertTrue(!Util.isInteger(".6"));
-    assertTrue(!Util.isInteger("99A99"));
-    assertTrue(!Util.isInteger(""));
-    assertTrue(!Util.isInteger(null));
+    assertFalse(Util.isInteger("a"));
+    assertFalse(Util.isInteger("1,"));
+    assertFalse(Util.isInteger(".6"));
+    assertFalse(Util.isInteger("99A99"));
+    assertFalse(Util.isInteger(""));
+    assertFalse(Util.isInteger(null));
   }
 
   @Test
-  public void testUtilTryToParseInt() {
-    assertTrue(Util.tryParseInt("0") == 0);
-    assertTrue(Util.tryParseInt("-1") == -1);
-    assertTrue(Util.tryParseInt("-") == 0);
-    assertTrue(Util.tryParseInt("-999") == -999);
-    assertTrue(Util.tryParseInt("999") == 999);
-    assertTrue(Util.tryParseInt("a") == 0);
-    assertTrue(Util.tryParseInt("1,") == 0);
-    assertTrue(Util.tryParseInt(".6") == 0);
-    assertTrue(Util.tryParseInt("99A99") == 0);
-    assertTrue(Util.tryParseInt("") == 0);
-    assertTrue(Util.tryParseInt(null) == 0);
+  void testUtilTryToParseInt() {
+    assertEquals(0, Util.tryParseInt("0"));
+    assertEquals(Util.tryParseInt("-1"), -1);
+    assertEquals(0, Util.tryParseInt("-"));
+    assertEquals(Util.tryParseInt("-999"), -999);
+    assertEquals(999, Util.tryParseInt("999"));
+    assertEquals(0, Util.tryParseInt("a"));
+    assertEquals(0, Util.tryParseInt("1,"));
+    assertEquals(0, Util.tryParseInt(".6"));
+    assertEquals(0, Util.tryParseInt("99A99"));
+    assertEquals(0, Util.tryParseInt(""));
+    assertEquals(0, Util.tryParseInt(null));
   }
 }

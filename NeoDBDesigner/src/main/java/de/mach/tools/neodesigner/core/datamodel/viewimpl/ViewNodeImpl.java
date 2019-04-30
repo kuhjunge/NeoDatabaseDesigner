@@ -181,7 +181,8 @@ public abstract class ViewNodeImpl<T extends Node> implements Node {
   @Override
   public void setName(final String n) {
     data.setName(n);
-    if (!nameProp.get().equals(n)) {
+    String name = data.getName();
+    if (!nameProp.get().equals(name)) {
       nameProp.set(data.getName());
     }
     modifiedName = true;

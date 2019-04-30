@@ -13,7 +13,6 @@ package de.mach.tools.neodesigner.core.datamodel;
 
 
 import java.util.List;
-import java.util.Optional;
 
 
 /** Representiert eine Tabelle aus dem Relationalen Datenbankmodel aus der Graphendatenbank.
@@ -53,18 +52,18 @@ public interface Table extends Node {
   /** fügt ein Feld zur Tabelle hinzu.
    *
    * @param f das Feld was zur Tabelle hinzugefügt wird. */
-  void addField(Field f);
+  void addField(Field... f);
 
   /** fügt einen Index zur Tabelle hinzu
    *
-   * @param i */
+   * @param i Indexobjekt */
   void addIndex(Index i);
 
   /** Gibt ein Feld mit diesem Namen zurück.
    *
    * @param fieldName der Name von dem Feld welches zruückgegeben werden soll
    * @return Das Feld */
-  Optional<Field> getField(String fieldName);
+  Field getField(String fieldName);
 
   /** getter cateogory.
    *
@@ -84,6 +83,12 @@ public interface Table extends Node {
   /** fügt einen Fremdschlüssel hinzu
    *
    * @param fk der Fremdschlüssel
-   * @param refkey */
+   * @param refkey Ist dieser Fremdschlüssel von dieser Tabelle (True) oder von einer fremden Tabelle (false) */
   void addForeignKey(ForeignKey fk, boolean refkey);
+
+  int getOrder(String fieldName);
+
+  void setOrder(String fieldName, int order);
+
+  void setDataFieldSrc(FieldList data);
 }

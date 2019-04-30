@@ -19,41 +19,28 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.util.Callback;
 
-import org.controlsfx.validation.Severity;
-import org.controlsfx.validation.ValidationResult;
-import org.controlsfx.validation.ValidationSupport;
-import org.controlsfx.validation.Validator;
-
+import de.mach.tools.neodesigner.core.Validator;
 import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewField;
+import de.mach.tools.neodesigner.ui.GuiUtil;
 
 
 /** Custom Cell für die Tabelle.
  *
  * @author cd */
-public class NameCell extends TableCell<de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewField, String> {
+public class NameCell extends TableCell<ViewField, String> {
 
   private TextField textField;
   private final de.mach.tools.neodesigner.core.Validator validatorForField;
 
-  public static Callback<TableColumn<ViewField, String>, TableCell<ViewField, String>> forTableColumn(final de.mach.tools.neodesigner.core.Validator validator) {
+  public static Callback<TableColumn<ViewField, String>, TableCell<ViewField, String>> forTableColumn(final Validator validator) {
     return list -> new NameCell(validator);
   }
 
-  public NameCell(final de.mach.tools.neodesigner.core.Validator validatorForField) {
+  private NameCell(final Validator validatorForField) {
     getStyleClass().add("text-field-table-cell");
     this.validatorForField = validatorForField;
   }
 
-  private void setValidator(final TextField txtfld, final de.mach.tools.neodesigner.core.Validator validatorForField) {
-    if (validatorForField != null) {
-      final ValidationSupport support = new ValidationSupport();
-      final Validator<String> validator = (control, value) -> {
-        final boolean condition = value != null && !validatorForField.validateFieldName(value);
-        return ValidationResult.fromMessageIf(control, validatorForField.getLastError(), Severity.ERROR, condition);
-      };
-      support.registerValidator(txtfld, false, validator);
-    }
-  }
 
   /** {@inheritDoc} */
   @Override
@@ -85,7 +72,7 @@ public class NameCell extends TableCell<de.mach.tools.neodesigner.core.datamodel
 
   private TextField createTextField() {
     final TextField txtFld = new TextField(getItem());
-    setValidator(txtFld, validatorForField);
+    GuiUtil.setValidator(txtFld, validatorForField);
     txtFld.focusedProperty().addListener((observable, oldValue, newValue) -> {
       if (oldValue && !newValue) {
         commitEdit(txtFld.getText());

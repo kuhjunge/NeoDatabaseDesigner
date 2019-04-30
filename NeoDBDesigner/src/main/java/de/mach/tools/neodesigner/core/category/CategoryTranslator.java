@@ -12,18 +12,13 @@
 package de.mach.tools.neodesigner.core.category;
 
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+import de.mach.tools.neodesigner.core.ConfigSaver;
 import de.mach.tools.neodesigner.core.Strings;
 import de.mach.tools.neodesigner.core.datamodel.Table;
 
@@ -32,58 +27,51 @@ import de.mach.tools.neodesigner.core.datamodel.Table;
  *
  * @author Chris Deter */
 public class CategoryTranslator {
-  private static final Logger LOG = Logger.getLogger(CategoryTranslator.class.getName());
-  private final File configPath = new File(System.getenv(Strings.CONF_LOC) + File.separatorChar + Strings.SOFTWARENAME);
-  protected final Map<String, String> categoryToName = new HashMap<>();
+  private final Map<String, String> categoryToName = new HashMap<>();
   private List<String> categories;
   // die Config Datei
-  private final File configFile = new File(configPath.getAbsolutePath() + File.separatorChar + Strings.CATEGORYFILE);
+  private ConfigSaver conf;
 
-  public CategoryTranslator() {}
-
-  /** Erstellt einen Translator für die Kategorien.
-   *
-   * @param lt die Liste aller Tabellen, dessen Kategorien übersetzt werden sollen */
-  public CategoryTranslator(final List<Table> lt) {
-    // die Config Datei
-    final File confFile = new File(configPath.getAbsolutePath() + File.separatorChar + Strings.CATEGORYFILE);
-    // ist die Config Datei vorhanden - dann lade die daten
-    if (confFile.exists()) {
-      try (FileInputStream fis = new FileInputStream(confFile)) {
-        loadProperties(fis, getCategoriesFromTable(lt));
-      }
-      catch (final IOException e) {
-        CategoryTranslator.LOG.log(Level.SEVERE, e.toString(), e);
-      }
-    }
+  public CategoryTranslator(ConfigSaver cs) {
+    conf = cs;
+    loadTranslation();
   }
 
   public List<String> getAllCategories() {
     return new ArrayList<>(categoryToName.keySet());
   }
 
-  protected List<String> getCategories(final Iterable<String> lt) {
+  private List<String> getCategoriesManual(final Iterable<String> lt) {
+    categories = getCategories(lt);
+    return categories;
+  }
+
+  private List<String> getCategories(final Iterable<String> lt) {
     final List<String> cat = new ArrayList<>();
     for (final String t : lt) {
       if (!cat.contains(t)) {
         cat.add(t);
       }
-      if (t.length() > 0 && !cat.contains(t.substring(0, 1))) {
-        cat.add(t.substring(0, 1));
+      String title = t.split(",")[0];
+      if (t.length() > 0 && !cat.contains(title)) {
+        cat.add(title);
       }
     }
-    categories = cat;
     return cat;
   }
 
-  protected List<String> getCategoriesFromTable(final List<Table> lt) {
-    final List<String> cat = new ArrayList<>();
+  public List<String> getCategoriesFromTable(final List<Table> lt) {
+    final List<String> catList = new ArrayList<>();
     for (final Table t : lt) {
-      if (!cat.contains(t.getCategory())) {
-        cat.add(t.getCategory());
+      String cat = t.getCategory();
+      if (!catList.contains(cat)) {
+        catList.add(cat);
+      }
+      if (cat.length() > 0 && !catList.contains(cat.substring(0, 1))) {
+        catList.add(cat.substring(0, 1));
       }
     }
-    return getCategories(cat);
+    return getCategoriesManual(catList);
   }
 
   /** Läd die Kategorieübersetzung.
@@ -91,62 +79,32 @@ public class CategoryTranslator {
    * @param c die Kategorien als Zahlenwert */
   public void load(final Iterable<String> c) {
     // ist die Config Datei vorhanden - dann lade die daten
-    if (configFile.exists()) {
-      try (FileInputStream fis = new FileInputStream(configFile)) {
-        loadProperties(fis, getCategories(c));
-      }
-      catch (final IOException e) {
-        CategoryTranslator.LOG.log(Level.SEVERE, e.toString(), e);
-      }
+    categories = getCategories(c);
+    for (final String category : categories) {
+      categoryToName.put(category, category);
+      conf.setValue(Strings.SECTION + category, category);
     }
-    else {
-      CategoryTranslator.LOG.log(Level.WARNING, "Could not find " + configFile.getName());
-      if (categories == null) {
-        categories = new ArrayList<>();
-      }
-      for (final String category : categories) {
-        categoryToName.put(category, category);
-      }
-    }
+    loadTranslation();
   }
 
-  private void loadProperties(final FileInputStream fis, final List<String> categories) throws IOException {
-    final java.util.Properties prop = new java.util.Properties();
-    prop.load(fis);
-    for (final String category : categories) {
-      final String catName = prop.getProperty(Strings.SECTION + category);
-      if (catName != null) {
-        categoryToName.put(category, catName);
-      }
-    }
-    for (final Entry<Object, Object> obj : prop.entrySet()) {
-      final String key = obj.getKey().toString().replace(Strings.SECTION, "");
-      if (!categoryToName.containsKey(key)) {
-        categoryToName.put(key, obj.getValue().toString());
-      }
+  private void loadTranslation() {
+    categoryToName.clear();
+    conf.load();
+    for (Entry<String, String> entry : conf.getValueMap().entrySet()) {
+      categoryToName.put(entry.getKey().substring(Strings.SECTION.length()), entry.getValue());
     }
   }
 
   /** Speichert eine neue Property Datei.
    *
    * @param catIdAndCatName Map mit allen Werten */
-  public void save(final Map<String, String> catIdAndCatName) {
-    try (FileOutputStream fos = new FileOutputStream(configFile)) {
-      saveProperties(fos, catIdAndCatName);
+  public void save(Map<String, String> catIdAndCatName) {
+    conf.clearValues();
+    for (Entry<String, String> e : catIdAndCatName.entrySet()) {
+      conf.setValue(Strings.SECTION + e.getKey(), e.getValue());
     }
-    catch (final IOException e) {
-      CategoryTranslator.LOG.log(Level.SEVERE, e.toString(), e);
-    }
-  }
-
-  private void saveProperties(final FileOutputStream fos, final Map<String, String> catIdAndCatName)
-      throws IOException {
-    final java.util.Properties prop = new java.util.Properties();
-    for (final Entry<String, String> c : catIdAndCatName.entrySet()) {
-      prop.put(Strings.SECTION + c.getKey(), c.getValue());
-    }
-    prop.store(fos, Strings.CATEGORYFILE);
-    fos.flush();
+    conf.save();
+    loadTranslation();
   }
 
   /** Übersetzt die Nummer in den Kategorie Namen.
@@ -154,9 +112,18 @@ public class CategoryTranslator {
    * @param number die Nummer
    * @return der Kategorie Name */
   public String translateNumberIntoName(final String number) {
+    String ret = number;
     if (categoryToName.containsKey(number)) {
-      return categoryToName.get(number);
+      ret = categoryToName.get(number);
     }
-    return number;
+    return ret;
+  }
+
+  public Map<String, String> getCategoryTranslation(List<String> categories) {
+    Map<String, String> ret = new HashMap<>();
+    for (String cat : categories) {
+      ret.put(cat, translateNumberIntoName(cat));
+    }
+    return ret;
   }
 }

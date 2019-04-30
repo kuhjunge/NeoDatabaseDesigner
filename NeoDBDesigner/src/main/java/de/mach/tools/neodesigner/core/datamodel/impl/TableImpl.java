@@ -13,12 +13,11 @@ package de.mach.tools.neodesigner.core.datamodel.impl;
 
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import de.mach.tools.neodesigner.core.Strings;
 import de.mach.tools.neodesigner.core.datamodel.Field;
+import de.mach.tools.neodesigner.core.datamodel.FieldList;
 import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
 import de.mach.tools.neodesigner.core.datamodel.Index;
 import de.mach.tools.neodesigner.core.datamodel.Table;
@@ -29,7 +28,7 @@ import de.mach.tools.neodesigner.core.datamodel.Table;
  * @author Chris Deter */
 public class TableImpl extends NodeImpl implements Table {
   private String category = Strings.CATEGORYNONE;
-  private final List<Field> fields = new ArrayList<>();
+  private FieldList fields = new OrderedFieldList(new ArrayList());
   private Index xpk;
   private final List<ForeignKey> foreignKeys = new ArrayList<>();
   private final List<ForeignKey> refForeignKeys = new ArrayList<>();
@@ -52,7 +51,6 @@ public class TableImpl extends NodeImpl implements Table {
     }
     xpk = new IndexImpl(o.getXpk(), this);
     for (final Field f : xpk.getFieldList()) {
-      f.setPartOfPrimaryKey(true);
       xpk.setOrder(f.getName(), o.getXpk().getOrder(f.getName(), false), false);
     }
     for (final Index i : o.getIndizies()) {
@@ -61,44 +59,48 @@ public class TableImpl extends NodeImpl implements Table {
   }
 
   @Override
-  public void addField(final Field f) {
-    if (fields.contains(f)) {
-      fields.remove(f);
+  public void setDataFieldSrc(FieldList data) {
+    fields = data;
+  }
+
+  @Override
+  public void addField(final Field... f) {
+    for (Field fi : f) {
+      fields.addField(fi);
     }
-    fields.add(f);
-    Collections.sort(fields);
   }
 
   @Override
   public void addForeignKey(final ForeignKey fk, final boolean refkey) {
     if (refkey) {
-      if (refForeignKeys.contains(fk)) {
-        refForeignKeys.remove(fk);
-      }
+      refForeignKeys.remove(fk);
       refForeignKeys.add(fk);
     }
     else {
-      if (foreignKeys.contains(fk)) {
-        foreignKeys.remove(fk);
-      }
+      foreignKeys.remove(fk);
       foreignKeys.add(fk);
     }
   }
 
   @Override
+  public int getOrder(String fieldName) {
+    return fields.getOrder(fieldName);
+  }
+
+  @Override
+  public void setOrder(String fieldName, int order) {
+    fields.setOrder(fieldName, order);
+  }
+
+  @Override
   public void addIndex(final Index i) {
-    if (indizies.contains(i)) {
-      indizies.remove(i);
-    }
+    indizies.remove(i);
     indizies.add(i);
   }
 
   @Override
   public void deleteField(final String fieldName) {
-    final Field f = new FieldImpl(fieldName);
-    if (fields.contains(f)) {
-      fields.remove(fields.indexOf(f));
-    }
+    fields.deleteField(fieldName);
   }
 
   @Override
@@ -116,20 +118,13 @@ public class TableImpl extends NodeImpl implements Table {
   }
 
   @Override
-  public Optional<Field> getField(final String fieldName) {
-    Optional<Field> field = Optional.empty();
-    final int index = fields.indexOf(new FieldImpl(fieldName));
-    if (index >= 0) {
-      field = Optional.ofNullable(fields.get(index));
-    }
-    return field;
+  public Field getField(final String fieldName) {
+    return fields.getField(fieldName);
   }
 
   @Override
   public List<Field> getFields() {
-    // TODO: Direkten Zugriff entfernen (achtung, ViewTable kann dann Felder nicht
-    // mehr updaten)
-    return fields;
+    return fields.get();
   }
 
   @Override
@@ -177,4 +172,6 @@ public class TableImpl extends NodeImpl implements Table {
     return getName() + Strings.COLON + Strings.SPACE + getCategory() + Strings.EOL + getFields() + Strings.EOL
            + getXpk() + Strings.EOL + getIndizies() + Strings.EOL + getForeignKeys();
   }
+
+
 }

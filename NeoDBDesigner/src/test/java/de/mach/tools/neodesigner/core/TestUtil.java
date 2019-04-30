@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import de.mach.tools.neodesigner.core.category.CategoryTranslator;
 import de.mach.tools.neodesigner.core.datamodel.Domain.DomainId;
 import de.mach.tools.neodesigner.core.datamodel.Field;
 import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
@@ -26,10 +27,12 @@ import de.mach.tools.neodesigner.core.datamodel.impl.FieldImpl;
 import de.mach.tools.neodesigner.core.datamodel.impl.ForeignKeyImpl;
 import de.mach.tools.neodesigner.core.datamodel.impl.IndexImpl;
 import de.mach.tools.neodesigner.core.datamodel.impl.TableImpl;
+import de.mach.tools.neodesigner.inex.ImportTask;
+import de.mach.tools.neodesigner.inex.nimport.ImportJsonTask;
 
 
 public class TestUtil {
-  public static Map<String, String> getCatList() {
+  static Map<String, String> getCatList() {
     final Map<String, String> categoryToName = new HashMap<>();
     categoryToName.put("0,0", "Cat0");
     categoryToName.put("1", "Cat1");
@@ -41,7 +44,7 @@ public class TestUtil {
     return categoryToName;
   }
 
-  public static Table getExampleTable() {
+  static Table getExampleTable() {
     final Table t = new TableImpl("ExampleTable");
     final Table reft = new TableImpl("ExampleRefTable");
     t.setCategory("1,1");
@@ -52,7 +55,6 @@ public class TestUtil {
     final Index i2 = new IndexImpl("XIE10" + "TestIndex", t);
     final Index xpk = new IndexImpl("XPKTable", t);
     xpk.addField(f2);
-    f2.setPartOfPrimaryKey(true);
     final ForeignKey fk = new ForeignKeyImpl("R_10", t);
     t.addField(f);
     t.addField(f2);
@@ -64,7 +66,6 @@ public class TestUtil {
     fk.setIndex(i);
     fk.setRefTable(reft);
     reft.addField(new FieldImpl("FeldZwei", DomainId.AMOUNT, 0, true, "", t));
-    reft.getField("FeldZwei").get().setPartOfPrimaryKey(true);
     reft.getRefForeignKeys().add(fk);
     // fk.getIndex().setAltName("Feld", "FeldZwei");
     t.getIndizies().add(i2);
@@ -88,8 +89,9 @@ public class TestUtil {
       xpk.addField(f2);
       final ForeignKey fk = new ForeignKeyImpl("R_10" + j, t);
       t.addField(f);
-      t.addField(f2);
+      // Feld 3 ist vor Feld 2
       t.addField(f3);
+      t.addField(f2);
       i.addField(f);
       i2.addField(f);
       fk.setIndex(i);
@@ -103,5 +105,15 @@ public class TestUtil {
       lt.add(t);
     }
     return lt;
+  }
+
+  public static Model getDatamodel() {
+    ConfigSaver catConfig = new MockConfigSaver();
+    String jsonCsv = "{\"tables\":[{\"n\":\"TABLE0\",\"cat\":\"0,0\",\"fl\":[{\"n\":\"FELD0\",\"dom\":\"String\",\"l\":50,\"isnull\":false},{\"n\":\"FELDZWEI0\",\"dom\":\"Counter\",\"isnull\":false},{\"n\":\"FELDDREI0\",\"dom\":\"Date\",\"isnull\":true}],\"xpk\":{\"n\":\"XPKTABLE0\",\"unique\":true,\"fl\":[\"FELDZWEI0\"]},\"il\":[{\"n\":\"XIE100TESTINDEX\",\"unique\":false,\"fl\":[\"FELD0\"]},{\"n\":\"XIF100BLABLUB\",\"unique\":false,\"fl\":[\"FELD0\"]}],\"fkl\":[{\"n\":\"R_100\",\"rt\":\"TABLE0\",\"fl\":[\"FELD0\"]}]},{\"n\":\"TABLE1\",\"cat\":\"0,0\",\"fl\":[{\"n\":\"FELD1\",\"dom\":\"String\",\"l\":50,\"isnull\":false},{\"n\":\"FELDZWEI1\",\"dom\":\"Counter\",\"isnull\":false},{\"n\":\"FELDDREI1\",\"dom\":\"Date\",\"isnull\":true}],\"xpk\":{\"n\":\"XPKTABLE1\",\"unique\":true,\"fl\":[\"FELDZWEI1\"]},\"il\":[{\"n\":\"XIE101TESTINDEX\",\"unique\":false,\"fl\":[\"FELD1\"]},{\"n\":\"XIF101BLABLUB\",\"unique\":false,\"fl\":[\"FELD1\"]}],\"fkl\":[{\"n\":\"R_101\",\"rt\":\"TABLE1\",\"fl\":[\"FELD1\"]}]},{\"n\":\"TABLE2\",\"cat\":\"10,1\",\"fl\":[{\"n\":\"FELD2\",\"dom\":\"String\",\"l\":50,\"isnull\":false},{\"n\":\"FELDZWEI2\",\"dom\":\"Counter\",\"isnull\":false},{\"n\":\"FELDDREI2\",\"dom\":\"Date\",\"isnull\":true}],\"xpk\":{\"n\":\"XPKTABLE2\",\"unique\":true,\"fl\":[\"FELDZWEI2\"]},\"il\":[{\"n\":\"XIE102TESTINDEX\",\"unique\":false,\"fl\":[\"FELD2\"]},{\"n\":\"XIF102BLABLUB\",\"unique\":false,\"fl\":[\"FELD2\"]}],\"fkl\":[{\"n\":\"R_102\",\"rt\":\"TABLE2\",\"fl\":[\"FELD2\"]}]},{\"n\":\"TABLE3\",\"cat\":\"0,0\",\"fl\":[{\"n\":\"FELD3\",\"dom\":\"String\",\"l\":50,\"isnull\":false},{\"n\":\"FELDZWEI3\",\"dom\":\"Counter\",\"isnull\":false},{\"n\":\"FELDDREI3\",\"dom\":\"Date\",\"isnull\":true}],\"xpk\":{\"n\":\"XPKTABLE3\",\"unique\":true,\"fl\":[\"FELDZWEI3\"]},\"il\":[{\"n\":\"XIE103TESTINDEX\",\"unique\":false,\"fl\":[\"FELD3\"]},{\"n\":\"XIF103BLABLUB\",\"unique\":false,\"fl\":[\"FELD3\"]}],\"fkl\":[{\"n\":\"R_103\",\"rt\":\"TABLE3\",\"fl\":[\"FELD3\"]}]},{\"n\":\"TABLE4\",\"cat\":\"0,0\",\"fl\":[{\"n\":\"FELD4\",\"dom\":\"String\",\"l\":50,\"isnull\":false},{\"n\":\"FELDZWEI4\",\"dom\":\"Counter\",\"isnull\":false},{\"n\":\"FELDDREI4\",\"dom\":\"Date\",\"isnull\":true}],\"xpk\":{\"n\":\"XPKTABLE4\",\"unique\":true,\"fl\":[\"FELDZWEI4\"]},\"il\":[{\"n\":\"XIE104TESTINDEX\",\"unique\":false,\"fl\":[\"FELD4\"]},{\"n\":\"XIF104BLABLUB\",\"unique\":false,\"fl\":[\"FELD4\"]}],\"fkl\":[{\"n\":\"R_104\",\"rt\":\"TABLE4\",\"fl\":[\"FELD4\"]}]}],\"categories\":[{\"id\":\"0\",\"n\":\"BeispielUeberschrift\"},{\"id\":\"0,0\",\"n\":\"BeispielKategorie\"},{\"id\":\"10\",\"n\":\"BeispielUeberschrift2\"},{\"id\":\"10,1\",\"n\":\"BeispielKategorie2\"}]}";
+    ImportTask it = new ImportJsonTask(new CategoryTranslator(catConfig), jsonCsv);
+    it.startImport();
+    final Model model = new ModelImpl(new MockConfigSaver(), catConfig);
+    model.importTables(it.getList());
+    return model;
   }
 }

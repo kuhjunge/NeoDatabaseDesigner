@@ -27,6 +27,7 @@ import javafx.scene.control.TabPane;
 import javafx.stage.Window;
 
 import de.mach.tools.neodesigner.core.Model;
+import de.mach.tools.neodesigner.core.Util;
 import de.mach.tools.neodesigner.core.datamodel.Index;
 import de.mach.tools.neodesigner.core.datamodel.Table;
 import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewForeignKey;
@@ -158,14 +159,16 @@ public class DbTableTabStarter {
    *
    * @return einen neuen Index */
   private ViewIndex newTableIndex() {
-    final ViewIndex i = new ViewIndex(Strings.NAME_XIE + ndbm.getNextNumberForIndex(tbl.getIndizies()) + tbl.getName(),
+    final ViewIndex i = new ViewIndex(Util
+        .getShortName(Strings.NAME_XIE + ndbm.getNextNumberForIndex(tbl.getIndizies()) + tbl.getName(),
+                      ndbm.getValidator().getNodeNameLength()), // Name wird zusammengesetzt und ggf. gekürzt
                                       tbl);
     i.setAsNewCreated();
     return i;
   }
 
   /** Entfernt ein Tab. */
-  void removeTab() {
+  public void removeTab() {
     tv.getTabs().remove(tab);
   }
 
@@ -176,18 +179,21 @@ public class DbTableTabStarter {
   private void setListener(final ViewTable t, final Window window) {
     // Index listener
     tabControl.getAddIndex().setOnAction(event -> IndexRelEditorController
-        .startIndexRelEditor(t, newTableIndex(), window, tabControl.getTvi(), true));
+        .startIndexRelEditor(t, newTableIndex(), window, tabControl.getTvi(), true, ndbm.getValidator()));
     tabControl.getModIndexRel()
-        .setOnAction(ev -> IndexRelEditorController.startIndexRelEditor(t, t.getIndizesRaw()
-            .get(t.getIndizesRaw().indexOf(tabControl.getTvi().getSelectionModel().getSelectedItem())), window,
-                                                                        tabControl.getTvi(), false));
+        .setOnAction(ev -> IndexRelEditorController
+            .startIndexRelEditor(t,
+                                 t.getIndizesRaw()
+                                     .get(t.getIndizesRaw()
+                                         .indexOf(tabControl.getTvi().getSelectionModel().getSelectedItem())),
+                                 window, tabControl.getTvi(), false, ndbm.getValidator()));
     // FK listener
-    tabControl.getAddFk().setOnAction(event -> FkRelEditorController.startFkRelEditor(t, newTableForeignKey(t), ndbm,
-                                                                                      window, tabControl.getTvfk()));
+    tabControl.getAddFk().setOnAction(event -> FkRelEditorController
+        .startFkRelEditor(t, newTableForeignKey(t), ndbm, window, tabControl.getTvfk(), ndbm.getValidator()));
     tabControl.getModFkRel()
         .setOnAction(ev -> FkRelEditorController
             .startFkRelEditor(t, tabControl.getTvfk().getSelectionModel().getSelectedItem(), ndbm, window,
-                              tabControl.getTvfk()));
+                              tabControl.getTvfk(), ndbm.getValidator()));
     // Graph
     final DisplayGraph dg = new DisplayGraph();
     tabControl.getGraphButton().setOnAction(event -> dg.showTable(window, t));

@@ -15,6 +15,7 @@ package de.mach.tools.neodesigner.ui.controller;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.HostServices;
@@ -39,10 +40,10 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 
 import de.mach.tools.neodesigner.core.datamodel.Table;
-import de.mach.tools.neodesigner.core.nexport.pdf.ModelPathManager;
-import de.mach.tools.neodesigner.core.nexport.pdf.ModelPrinter;
-import de.mach.tools.neodesigner.core.nexport.pdf.ModelPrinterImpl;
-import de.mach.tools.neodesigner.core.nexport.pdf.PdfConf;
+import de.mach.tools.neodesigner.inex.nexport.pdf.ModelPathManager;
+import de.mach.tools.neodesigner.inex.nexport.pdf.ModelPrinter;
+import de.mach.tools.neodesigner.inex.nexport.pdf.ModelPrinterImpl;
+import de.mach.tools.neodesigner.inex.nexport.pdf.PdfConf;
 import de.mach.tools.neodesigner.ui.GuiUtil;
 import de.mach.tools.neodesigner.ui.Strings;
 
@@ -56,13 +57,13 @@ public class ModelPrinterController {
    * @param primaryStage Stage
    * @param config Config Interface aus dem die Pfade geladen werden
    * @param hs Hostservices zum PDF öffnen */
-  static void startPdfCreator(final List<Table> t, final Window primaryStage, final PdfConf config,
-                              final HostServices hs) {
+  static void startPdfCreator(final List<Table> t, Map<String, String> catTransl, final Window primaryStage,
+                              final PdfConf config, final HostServices hs) {
     Parent root;
     ModelPrinterController mpc;
     try {
       final FXMLLoader fxmlLoader = new FXMLLoader(t.getClass().getResource(Strings.FXML_PDFEDITOR));
-      mpc = new ModelPrinterController(t);
+      mpc = new ModelPrinterController(t, catTransl);
       fxmlLoader.setController(mpc);
       root = fxmlLoader.load();
       final Stage stage = new Stage();
@@ -72,7 +73,7 @@ public class ModelPrinterController {
       stage.initOwner(primaryStage.getScene().getWindow());
       stage.show();
       stage.getIcons().add(new Image(ModelPrinterController.class.getResourceAsStream(Strings.FXML_ICON)));
-      mpc.setup(config, hs);
+      mpc.setup(config, hs, stage);
     }
     catch (final IOException e) {
       ModelPrinterController.LOG.log(Level.SEVERE, e.toString(), e);
@@ -83,6 +84,7 @@ public class ModelPrinterController {
   private final DirectoryChooser directoryChooser = new DirectoryChooser();
   private Stage stage;
   private final List<Table> tables;
+  private final Map<String, String> catTransl;
 
   private HostServices hostServices;
 
@@ -110,8 +112,9 @@ public class ModelPrinterController {
   @FXML
   private RadioMenuItem loescheTemp;
 
-  private ModelPrinterController(final List<Table> t) {
+  private ModelPrinterController(final List<Table> t, Map<String, String> catTransl) {
     tables = t;
+    this.catTransl = catTransl;
   }
 
   /** Task zur Erstellung des PDFs.
@@ -135,7 +138,7 @@ public class ModelPrinterController {
         try {
           final ModelPrinter mp = new ModelPrinterImpl(mpm);
           updateProgressMessage(0.1, Strings.UPDATETEXT_TEMPLATE);
-          mp.verarbeiteTemplate(tables, pdfTitle.getText(), mpm.getAuthor());
+          mp.verarbeiteTemplate(tables, pdfTitle.getText(), mpm.getAuthor(), catTransl);
           updateProgressMessage(0.2, Strings.UPDATETEXT_RUN1);
           mp.erstellePdf();
           updateProgressMessage(0.3, Strings.UPDATETEXT_CREATEINDEX);
@@ -158,7 +161,7 @@ public class ModelPrinterController {
         btnCreatePdf.setDisable(false);
       }
 
-      public void updateProgressMessage(final double progress, final String msg) {
+      void updateProgressMessage(final double progress, final String msg) {
         updateProgress(MAX * progress, MAX);
         updateMessage(msg);
       }
@@ -267,7 +270,8 @@ public class ModelPrinterController {
    *
    * @param config bekommt das Config interface übergeben
    * @param hs Hostservices zum PDF öffnen */
-  private void setup(final PdfConf config, final HostServices hs) {
+  private void setup(final PdfConf config, final HostServices hs, final Stage stage) {
+    this.stage = stage;
     mpm.init(config);
     labelMikTexPfad.setText(mpm.getMikTexPath());
     labelPdfOutput.setText(mpm.getPdfPath());

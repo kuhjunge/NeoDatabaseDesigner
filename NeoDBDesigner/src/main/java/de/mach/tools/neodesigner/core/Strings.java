@@ -17,6 +17,7 @@ package de.mach.tools.neodesigner.core;
  * @author Chris Deter */
 public final class Strings {
   public static final String SOFTWARENAME = "NeoDatabaseDesigner";
+  public static final String SWVERSION = de.mach.tools.neodesigner.ui.Strings.SWVERSION;
 
   static final String NAME_REGEX = "([A-Za-z0-9_])+";
   static final String[] RESERVED_SQL_WORDS = { " ACCESS ", " ACTION ", " ACTIVATION ", " ACTIVE ", " ADD ", " ADMIN ",
@@ -148,6 +149,7 @@ public final class Strings {
   public static final String INDEXTYPE_XIF = "XIF";
   public static final String INDEXTYPE_XAK = "XAK";
   public static final String INDEXTYPE_XIE = "XIE";
+  public static final String INDEXTYPE_XIG = "XIG";
   static final String VALIDATOR_WORDWRAP = " %s ";
 
   static final String VALIDATOR_NAMETOLONG = "Name is too long: %s (Max: %d )";
@@ -158,7 +160,6 @@ public final class Strings {
   static final String VALIDATOR_REFTABLEISNULL = "RefTable of %s is null";
   static final String VALIDATOR_DUPLICATEFIELDS = "There are Fields with the same Name!";
   static final String VALIDATOR_INDEXHASNOFIELDS = "Index has no Fields: %s";
-  static final String LOADFROMDB = "DB geladen in ms: ";
   static final String CONF_DEFAULT_ADR = "bolt://localhost:7687";
   static final String CONF_DEFAULT_USRPW = "neo4j";
   static final String CONF_DEFAULT_TITLE = "Gesamtmodell v1.00.1 \\copyright Firma";
@@ -173,13 +174,12 @@ public final class Strings {
   static final String CONFID_UTL = "uniqueTableLength";
   static final String CONFID_MIKTEX = "miktexpath";
   static final String CONFID_PDFPATH = "pdfexportpath";
-  static final String PATH_NEO4J = "\\bin\\neo4j.bat";
+  static final String CONFID_REMOVE_REDUNDANT_INDIZES = "removeRedundantIndizes";
 
-  static final String EXECNEO4J_PRE = " C:\\Windows\\system32\\cmd.exe /c cd /d \"";
-  static final String EXECNEO4J_POST = "\\bin\" & start C:\\Windows\\system32\\cmd.exe /k \"neo4j.bat console\"";
+  public static final String EXECNEO4J_PRE = " C:\\Windows\\system32\\cmd.exe /c cd /d \"";
+  public static final String EXECNEO4J_POST = "\\bin\" & start C:\\Windows\\system32\\cmd.exe /k \"neo4j.bat console\"";
   public static final String CATEGORYNONE = "0,0";
 
-  public static final String IMPORTGENERATEDINDEXMARKER = "_g";
   public static final String HTML_BR = "<br />";
 
   public static final String CARRIAGE_RETURN = "\r";
@@ -200,7 +200,7 @@ public final class Strings {
   public static final String SQL_INDEX_ELEM = "       %s ASC ,%s";
   public static final String SQL_TABLE_COMMENT = " -- Table: %s Category: %s Comment:%s";
   public static final String SQL_TABLE = "CREATE TABLE %s (%s";
-  public static final String SQL_TABLE_ELEM = "       %s %s,%s";
+  public static final String SQL_TABLE_ELEM = "       %s%s%s %s,%s";
   public static final String SQL_FOREIGNKEY_START = "ALTER TABLE %s       ADD"
                                                     + "  ( CONSTRAINT %s              FOREIGN KEY (";
   public static final String SQL_FOREIGNKEY_END = ")%s                             REFERENCES %s ";
@@ -209,40 +209,20 @@ public final class Strings {
   public static final String CATEGORYFILE = "DatenmodellSektionen.properties";
   public static final String SECTION = "section.";
   static final char IMPORTTYPESQL = 's';
+  static final char IMPORTTYPECSV = 'c';
+  static final char IMPORTTYPEJSON = 'j';
   static final String VALIDATOR_NAMEWIHTANOTHERCASE = "There are fields that have a similar name for"
                                                       + " '%s' with another case: %s";
   static final String VALIDATOR_TABLEISSIMILAR = "There is a Table with a similar Name "
                                                  + "(first 15 Chars identical).";
   public static final String COLON = ":";
   public static final String IMPORT_CATEGORIES = "writing categories";
-  public static final String IMPORT_PARSING = "start parsing";
+  public static final String IMPORT_PARSING = "parsing data";
   public static final String IMPORT_FINISHED = "finished Import (%s s)";
-  public static final String IMPORT_FAILED = "No Import Database! (%s s)";
   public static final String IMPORT_TABLES = "writing tables";
-  public static final String IMPORT_FOREIGNKEYS = "writing ForeignKeys";
-  public static final String IMPORT_CLEANUP = "cleanup";
   public static final String RES_PATH = "/de/mach/tools/neodesigner/core/";
 
   public static final String ALTEXT_DELETEERROR = "Could not delete previous PDF File!";
-  static final String LOG_CHANGETABLENAME = "change table name";
-  static final String LOG_CHANGENODENAME = "change node name";
-  static final String LOG_CHANGETABLECAT = "change table category";
-  static final String LOG_CHANGEFIELDREQ = "change field required";
-  static final String LOG_CHANGEFIELDTOD = "change field type of data";
-  static final String LOG_CHANGEFIELDPRIM = "change field is part of prim";
-  static final String LOG_CHANGEINDEXUNIQUE = "change index unique";
-  static final String LOG_TABLENEW = "insert new table";
-  static final String LOG_NEWFIELD = "insert new field";
-  static final String LOG_NEWINDEX = "insert new index";
-  static final String LOG_NEWFK = "insert new FK";
-  static final String LOG_DELETENODE = "delete node";
-  static final String LOG_CHANGEDATAFIELDS = "change data fields";
-  static final String LOG_CHANGEFKREL = "change fk rel";
-  static final String LOG_GETTABLE = "get table";
-  static final String LOG_HASTABLE = "has table";
-  static final String LOG_GETTABLES = "get tables";
-  static final String LOG_GETFIELDNAMECASE = "get field name case";
-  static final String LOG_SAVECOMMENT = "change comment";
   public static final String IMPORT_TYPE_NUMBER = "NUMBER";
   public static final String IMPORT_TYPE_VARCHAR = "VARCHAR2";
   public static final String IMPORT_TYPE_CHAR = "CHAR";
@@ -254,7 +234,7 @@ public final class Strings {
   public static final String IMPORT_18 = "18";
   public static final char REPLACECHAR_BRACKETOPEN = ')';
   public static final char REPLACECHAR_SPACE = ' ';
-  public static final String LOG_TABLEERROR = "Failed to find correct Entity in Datamodel! Trying to recover! Please refresh Datamodel!!";
+  static final String LOG_TABLEERROR = "Failed to find correct Entity in Datamodel! Trying to recover! Please refresh Datamodel!!";
   static final String VALIDATOR_PRIMAERFIELDNOTVALID = "A field from the primary key is already in use in a foreign key!";
   public static final String DOMAIN_LOOKUP = "lookup";
   public static final String DOMAIN_AMOUNT = "amount";
@@ -267,7 +247,6 @@ public final class Strings {
   public static final String ERROR_DOMAIN = "Unknown Domain while converting -> Fallback to String!";
   public static final String DOMAIN_ERROR_IN = "Unknown Domain while converting";
   public static final String ENCODINGUTF8 = "UTF-8";
-  public static final String PROP_PATH = "file.resource.loader.path";
   public static final String PROP_IN_ENCODING = "input.encoding";
   public static final String PROP_OUT_ENCODING = "output.encoding";
   public static final String REGEX_REPLACE_EXT = "[.][^.]+$";
@@ -298,12 +277,10 @@ public final class Strings {
   static final String CONFID_PATHOUTCSV = "pathoutcsv";
   static final String CONFID_PATHOUTCQL = "pathoutcql";
   static final String DEFAULTPATH = System.getProperty(Strings.USER_HOME);
-  public static final String CONF_LOC = "APPDATA";
   public static final String IMPORT_TYPE_LONGRAW = "LONG RAW";
   public static final int INDEXNAMELENGTH = 18;
   static final String CONFID_PDFAUTHOR = "pdfauthor";
-
-  public static final String CONFID_DBTYPE = "dbtype";
+  static final String LOG_COULDNOTSAVE = "Could not save:";
 
   private Strings() {}
 }

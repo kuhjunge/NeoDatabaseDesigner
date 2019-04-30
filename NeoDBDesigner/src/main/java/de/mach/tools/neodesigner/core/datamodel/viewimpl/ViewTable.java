@@ -14,7 +14,7 @@ package de.mach.tools.neodesigner.core.datamodel.viewimpl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.regex.Pattern;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -23,11 +23,12 @@ import javafx.collections.ObservableList;
 
 import de.mach.tools.neodesigner.core.Strings;
 import de.mach.tools.neodesigner.core.datamodel.Field;
+import de.mach.tools.neodesigner.core.datamodel.FieldList;
 import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
 import de.mach.tools.neodesigner.core.datamodel.Index;
 import de.mach.tools.neodesigner.core.datamodel.Node;
 import de.mach.tools.neodesigner.core.datamodel.Table;
-import de.mach.tools.neodesigner.core.datamodel.impl.FieldImpl;
+import de.mach.tools.neodesigner.core.datamodel.impl.OrderedFieldList;
 import de.mach.tools.neodesigner.core.datamodel.impl.TableImpl;
 
 
@@ -35,21 +36,32 @@ import de.mach.tools.neodesigner.core.datamodel.impl.TableImpl;
  *
  * @author Chris Deter */
 public class ViewTable extends ViewNodeImpl<Table> implements Table {
-  private final ObservableList<ViewField> dataFields = FXCollections.observableArrayList();
+  private final ObservableList<ViewField> dataFieldsRaw = FXCollections.observableArrayList();
   private ViewIndex xpk;
   private final ObservableList<ViewForeignKey> foreignKeys = FXCollections.observableArrayList();
   private final ObservableList<ViewIndex> indizes = FXCollections.observableArrayList();
-  private final ObservableList<ViewNodeImpl<?>> delete = FXCollections.observableArrayList();
+  private final List<ViewNodeImpl<?>> delete = new ArrayList<>();
+  private Map<Integer, String> newxpkorder = null;
 
   /** Konstruktor.
    *
    * @param n Name der neuen Tabelle */
   public ViewTable(final String n) {
     super(new TableImpl(n), null);
+    setDataFieldSrc(new OrderedFieldList(dataFieldsRaw));
     final ViewIndex t = new ViewIndex(Strings.INDEXTYPE_XPK + n, this);
     t.setAsNewCreated();
     xpk = t;
+    indizes.add(xpk);
     setListener();
+  }
+
+  public void changeXPKOrder(Map<Integer, String> m) {
+    newxpkorder = m;
+  }
+
+  public Map<Integer, String> getNewXpkOrder() {
+    return newxpkorder;
   }
 
   /** Konstruktor für Tabellenimport.
@@ -58,15 +70,20 @@ public class ViewTable extends ViewNodeImpl<Table> implements Table {
    * @param fullCopy (Kopiert FKs nicht mit in neue ViewTable) */
   public ViewTable(final Table t, final boolean fullCopy) {
     super(new TableImpl(t.getName()), null);
+    setDataFieldSrc(new OrderedFieldList(dataFieldsRaw));
     setCategory(t.getCategory());
     setComment(t.getComment());
     for (final Field f : t.getFields()) {
       addField(new ViewField(f, this));
     }
+    setXpk(t.getXpk());
+    indizes.add(xpk);
+    for (ViewField f : getDataFieldsRaw()) {
+      f.setPartOfPrimaryKey(f.isPartOfPrimaryKey());
+    }
     for (final Index i : t.getIndizies()) {
       addIndex(new ViewIndex(i, this));
     }
-    setXpk(t.getXpk());
     // FKs mitkopieren oder auslassen
     if (fullCopy) {
       for (final ForeignKey i : t.getForeignKeys()) {
@@ -81,12 +98,15 @@ public class ViewTable extends ViewNodeImpl<Table> implements Table {
   }
 
   @Override
-  public void addField(final Field f) {
-    if (dataFields.contains(f)) {
-      dataFields.remove(f);
+  public void setDataFieldSrc(FieldList data) {
+    getNode().setDataFieldSrc(data);
+  }
+
+  @Override
+  public void addField(final Field... fx) {
+    for (Field f : fx) {
+      getNode().addField(f);
     }
-    dataFields.add(new ViewField(f, this));
-    getNode().addField(f);
   }
 
   @Override
@@ -95,29 +115,37 @@ public class ViewTable extends ViewNodeImpl<Table> implements Table {
       getNode().addForeignKey(fk, true);
     }
     else {
-      if (foreignKeys.contains(fk)) {
-        foreignKeys.remove(fk);
-      }
+      foreignKeys.remove(fk);
       foreignKeys.add(new ViewForeignKey(fk, this));
     }
     getNode().addForeignKey(fk, refkey);
   }
 
   @Override
-  public void addIndex(final Index i) {
-    if (indizes.contains(i)) {
-      indizes.remove(i);
+  public int getOrder(String fieldName) {
+    return getNode().getOrder(fieldName);
+  }
+
+  @Override
+  public void setOrder(String fieldName, int order) {
+    getNode().setOrder(fieldName, order);
+    int setorder = getOrder(fieldName);
+    if (setorder > 0) {
+      getDataFieldsRaw().get(setorder - 1).orderProperty().set(setorder + "");
     }
+    reorderFields();
+  }
+
+  @Override
+  public void addIndex(final Index i) {
+    indizes.remove(i);
     indizes.add(new ViewIndex(i, this));
     getNode().addIndex(i);
   }
 
   @Override
   public void deleteField(final String fieldName) {
-    final Field f = new ViewField(new FieldImpl(fieldName), this);
-    if (dataFields.contains(f)) {
-      dataFields.remove(dataFields.indexOf(f));
-    }
+    getNode().deleteField(fieldName);
   }
 
   @Override
@@ -135,21 +163,27 @@ public class ViewTable extends ViewNodeImpl<Table> implements Table {
   }
 
   public ObservableList<ViewField> getDataFieldsRaw() {
-    return dataFields;
+    return dataFieldsRaw;
   }
 
-  public ObservableList<ViewNodeImpl<?>> getDeleteRaw() {
-    return delete;
+  public List<ViewNodeImpl<?>> getNodesToDelete() {
+    List<ViewNodeImpl<?>> del = new ArrayList<>(this.delete);
+    this.delete.clear();
+    return del;
+  }
+
+  public void addNoteToDeleteList(ViewNodeImpl node) {
+    delete.add(node);
   }
 
   @Override
-  public Optional<Field> getField(final String fieldName) {
+  public Field getField(final String fieldName) {
     return getNode().getField(fieldName);
   }
 
   @Override
   public List<Field> getFields() {
-    return new ArrayList<>(dataFields);
+    return getNode().getFields();
   }
 
   /** Prüft ob die angegebenen Nummer bereits in der Tabelle vergeben ist und erhöht die aktuelle Nummer ggf.
@@ -161,7 +195,7 @@ public class ViewTable extends ViewNodeImpl<Table> implements Table {
     int number;
     for (final ForeignKey fk : getForeignKeys()) {
       number = 0;
-      final String posNum = fk.getName().substring(2, fk.getName().length());
+      final String posNum = fk.getName().substring(2);
       final boolean isNumber = Pattern.matches("[0-9]+", posNum);
       if (isNumber) {
         number = Integer.parseInt(posNum);
@@ -188,7 +222,9 @@ public class ViewTable extends ViewNodeImpl<Table> implements Table {
 
   @Override
   public List<Index> getIndizies() {
-    return new ArrayList<>(indizes);
+    List<Index> li = new ArrayList<>(indizes);
+    li.remove(xpk);
+    return li;
   }
 
   @Override
@@ -215,7 +251,6 @@ public class ViewTable extends ViewNodeImpl<Table> implements Table {
     foreignKeys
         .addListener((ListChangeListener<? super ViewForeignKey>) c -> setListener(c, getNode().getForeignKeys()));
     indizes.addListener((ListChangeListener<? super ViewIndex>) c -> setListener(c, getNode().getIndizies()));
-    dataFields.addListener((ListChangeListener<? super ViewField>) c -> setListener(c, getNode().getFields()));
   }
 
   private <E extends Node> void setListener(final Change<? extends E> c, final List<E> targetList) {
@@ -231,6 +266,12 @@ public class ViewTable extends ViewNodeImpl<Table> implements Table {
     }
   }
 
+  private void reorderFields() {
+    for (ViewField f : new ArrayList<>(getDataFieldsRaw())) {
+      f.orderProperty().set(f.getDisplayOrder() + "");
+    }
+  }
+
   @Override
   public void setXpk(final Index lxpk) {
     xpk = new ViewIndex(lxpk, this);
@@ -239,6 +280,7 @@ public class ViewTable extends ViewNodeImpl<Table> implements Table {
 
   @Override
   public String toString() {
-    return getName();
+    return getName() + Strings.COLON + Strings.SPACE + getCategory() + Strings.EOL + getFields() + Strings.EOL
+           + getXpk() + Strings.EOL + getIndizies() + Strings.EOL + getForeignKeys();
   }
 }

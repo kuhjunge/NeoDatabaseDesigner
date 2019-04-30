@@ -56,13 +56,14 @@ public interface Field extends Node {
    * @return boolean ob das Feld Teil eines Primärschlüssels ist */
   boolean isPartOfPrimaryKey();
 
-  /** setter ist part of Prim Key.
-   *
-   * @param prim setzt ob das Feld Teil eines prim Schlüssels ist */
-  void setPartOfPrimaryKey(boolean prim);
-
   /** Gibt alle verknüpften Fremdschlüssel zurück.
    *
    * @return gibt alle verknüpften Fremdschlüssel zurück */
   List<ForeignKey> getConnectedFks();
+
+  /** @return Gibt die Ordnung des Feldes zurück */
+  int getDisplayOrder();
+
+  /** Setzt eine Ordnung für das Feld */
+  void setDisplayOrder(int order);
 }

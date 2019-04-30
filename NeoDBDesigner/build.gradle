@@ -2,6 +2,7 @@
 * Gradle Build File by Chris Deter
 */
 import org.gradle.plugins.ide.eclipse.model.AccessRule
+import org.gradle.plugins.ide.eclipse.model.SourceFolder
 
 plugins {
 	id 'java'
@@ -10,82 +11,85 @@ plugins {
 	id 'application'
 	id 'maven-publish'
 	id 'antlr'
-	id "com.diffplug.gradle.spotless" version "3.15.0"
+	id "com.diffplug.gradle.spotless" version "3.23.0"
 }
 
-def main = "de.mach.tools.neodesigner.ui.NeoDbDesignerStarter"
-def name = 'Neo Database Manager'
+def main = "de.mach.tools.neodesigner.ui.Starter"
+def name = 'Mach-ER'
 // Vorsicht beim ändern der Version, Artifakt wird danach evtl. nicht mehr im Repository gefunden
-def vers = '1.2.5'  + '-SNAPSHOT'
-def antlrGenSrc = "${project.buildDir}/generated-src/antlr/main/de/mach/tools/neodesigner/core/nimport/antlrsql/"
+def vers = '1.4.1'  + '-SNAPSHOT'
+def antlrGenSrc = "${project.buildDir}/generated-src/antlr/main/de/mach/tools/neodesigner/inex/nimport/antlrsql/"
 
 group = 'de.mach.tools'
 sourceCompatibility = 1.8
 version = vers
 mainClassName = main
-sourceSets.main.antlr.srcDirs = ['src/main/antlr/de/mach/tools/neodesigner/core/nimport/antlrsql/']
+sourceSets.main.antlr.srcDirs = ['src/main/antlr/de/mach/tools/neodesigner/inex/nimport/antlrsql/']
 
 dependencies {
-	// Apache Velocity (Apache License Version 2.0)
-	compile 'org.apache.velocity:velocity-engine-core:2.0'
-
-	// Neo4j Java Driver (Apache License Version 2.0)
-	compile "org.neo4j.driver:neo4j-java-driver:1.7.+"
-
-	// ANTLR (BSD License)
-	compile "org.antlr:antlr4-runtime:4.7.1"
-
-	//Graphstream (LGPL)
-	compile "org.graphstream:gs-core:1.3"
-	compile "org.graphstream:gs-ui:1.3"
-	compile "org.graphstream:gs-algo:1.3"
-
-	// ControlsFX (BSD-3 License)
-	compile "org.controlsfx:controlsfx:8.40.14"
-	// compile "org.controlsfx:controlsfx:9.0.0"
-
+	// Logging:
 	// SLF4J Simple Logging Facade for Java (MIT License)
-	compile "org.slf4j:slf4j-simple:1.7.25"
+	implementation "org.slf4j:slf4j-simple:1.7.25"
+
+	// GUI Autovervollständigung, Live Feldprüfung & Notifications
+	// ControlsFX (BSD-3 License)
+	implementation "org.controlsfx:controlsfx:8.40.14"
+
+	// TEX Export:
+	// Apache Velocity (Apache License Version 2.0)
+	implementation 'org.apache.velocity:velocity-engine-core:2.0'
+
+	// Neo4j Import & Export:
+	// Neo4j Java Driver (Apache License Version 2.0)
+	implementation "org.neo4j.driver:neo4j-java-driver:1.7.+"
+
+	// SQL Import:
+	// ANTLR (BSD License)
+	implementation "org.antlr:antlr4-runtime:4.7.1"
+
+	// GSON für JSON Import & Export
+	implementation 'com.google.code.gson:gson:2.8.5'
+
+	implementation 'com.beust:jcommander:1.72'
+
+	// Darstellung von Graphen (Tabelle, Kategorien und gesammtes Datenmodell)
+	// Graphstream (LGPL)
+	implementation "org.graphstream:gs-core:1.3"
+	implementation "org.graphstream:gs-ui:1.3"
+	implementation "org.graphstream:gs-algo:1.3"
+
+	// TestFX
+	testImplementation 'org.testfx:testfx-core:4.0.15-alpha'
+	testImplementation 'org.testfx:testfx-junit5:4.0.15-alpha'
 
 	// JUnit test framework
 	testImplementation 'org.junit.jupiter:junit-jupiter-api:5.+'
 	testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.+'
 	testImplementation 'org.junit.vintage:junit-vintage-engine:5.+'
-	testCompile 'org.testfx:testfx-junit:4.0+'
 
 	// Generate Antlr Code
 	antlr "org.antlr:antlr4:4.7.1"
 }
 
 jar {
-	manifest {
-		attributes 'Implementation-Title': name,
-				'Implementation-Version': vers,
-				'Main-Class': main
-	}
-}
-
-//create a single executable Jar with all dependencies
-task fatJar(type: Jar) {
-	manifest.from jar.manifest
-	classifier = ''
 	from {
-		configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) }
-	} {
-			exclude "META-INF/*.SF"
-			exclude "META-INF/*.DSA"
-			exclude "META-INF/*.RSA"
+		configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
 	}
-	with jar
+	exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+	manifest {
+		attributes  'Implementation-Title': name,
+					'Implementation-Version': vers,
+					'Main-Class': main
+	}
 }
 
 // Update Gradle
 task buildWrapper(type: Wrapper) {
-	gradleVersion = '4.9'
+	gradleVersion = '5.2.1'
 }
 
 artifacts {
-	archives fatJar
+	archives jar
 }
 
 test {
@@ -101,7 +105,7 @@ repositories {
 // ------- Antlr Configuration -------
 generateGrammarSource {
 	maxHeapSize = "64m"
-	arguments += ['-package', 'de.mach.tools.neodesigner.core.nimport.antlrsql']
+	arguments += ['-package', 'de.mach.tools.neodesigner.inex.nimport.antlrsql']
 	outputDirectory = new File(antlrGenSrc)
 }
 compileJava.dependsOn generateGrammarSource
@@ -135,7 +139,7 @@ afterEvaluate {
 eclipse.classpath {
 	file.whenMerged {
 		// Fix: Sourcefolder ANTLR
-		cp -> cp.entries.add( new org.gradle.plugins.ide.eclipse.model.SourceFolder(antlrGenSrc, null) )
+		cp -> cp.entries.add( new SourceFolder(antlrGenSrc, null) )
 
 		//Java FX Packages Workaround
 		entries.each { source ->

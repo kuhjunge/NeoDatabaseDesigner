@@ -20,32 +20,32 @@ import de.mach.tools.neodesigner.core.graph.GraphColourObj;
 import de.mach.tools.neodesigner.core.graph.GraphColours;
 
 
-public class TestGraph {
+class TestGraph {
 
   @Test
-  public void testGraphColours() {
+  void testGraphColours() {
     final GraphColours gc = new GraphColours();
     gc.giveCategoryColour("1,1");
     gc.giveCategoryColour("1");
-    assertFalse(gc.categoryToColourTransl("1,1").equals(gc.categoryToColourTransl("1")));
-    assertTrue(gc.categoryToColourTransl("1,2").equals(gc.categoryToColourTransl("1")));
+    assertNotEquals(gc.categoryToColourTransl("1,1"), gc.categoryToColourTransl("1"));
+    assertEquals(gc.categoryToColourTransl("1,2"), gc.categoryToColourTransl("1"));
     assertTrue(gc.categoryToColourTransl("2").length() > 1);
-    assertTrue(gc.getColoursAsCss()
-        .equals("node.c2 {  fill-color: #00ff00;} node.c1 {  fill-color: #0000ff;} node.c3 {  fill-color: #ff0000;} "));
-    assertTrue(gc.getColour().size() == 3);
+    assertEquals("node.c2 {  fill-color: #00ff00;} node.c1 {  fill-color: #0000ff;} node.c3 {  fill-color: #ff0000;} ",
+                 gc.getColoursAsCss());
+    assertEquals(3, gc.getColour().size());
   }
 
   @Test
-  public void testGraphColours2() {
+  void testGraphColours2() {
     final GraphColourObj gco0 = new GraphColourObj("1,1", 2);
     final GraphColourObj gco = new GraphColourObj("1,2", 3);
     final GraphColourObj gco2 = new GraphColourObj("2,3", 1);
-    assertTrue(gco.getCategory().equals("1,2"));
+    assertEquals("1,2", gco.getCategory());
     assertTrue(gco.compareTo(gco0) > 0);
     assertTrue(gco.compareTo(gco2) < 0);
-    assertTrue(gco.getColour(3).toString().equals("0xff0000ff"));
-    assertTrue(gco.getHexColour(3).equals("#ff0000"));
+    assertEquals("0xff0000ff", gco.getColour(3).toString());
+    assertEquals("#ff0000", gco.getHexColour(3));
     assertTrue(gco.hashCode() > 0);
-    assertTrue(gco.toString().equals("1,2(id: c3 sid: 3)"));
+    assertEquals("1,2(id: c3 sid: 3)", gco.toString());
   }
 }

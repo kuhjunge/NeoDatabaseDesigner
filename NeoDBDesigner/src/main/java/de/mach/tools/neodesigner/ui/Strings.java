@@ -16,32 +16,35 @@ package de.mach.tools.neodesigner.ui;
  *
  * @author Chris Deter */
 public final class Strings {
+  public static final String SWVERSION = "1.4.1";
   public static final String EMPTYSTRING = "";
-
-  static final String RELNAME_XPK = "XPK";
+  public static final String RELNAME_XPK = "XPK";
+  public static final String EXPORTJSONDEFAULT = "export.json";
 
   static final String NAME_XIE = "XIE";
 
-  public static final String SOFTWARENAME = "Neo Database Designer";
+  public static final String SOFTWARENAME = "MACH-ER";
 
   public static final String NAME_NEWTABLE = "newTable";
 
   public static final String SOFTWAREINFO = "Neo Database Manager" + Strings.EOL
                                             + "Icon: http://www.iconarchive.com/show/blue-bits-icons-by-icojam/database-settings-icon.html"
                                             + Strings.EOL + Strings.EOL
-                                            + "Copyright (c) 2017 Chris Deter (MIT-License)";
+                                            + "Copyright (c) 2018 Chris Deter (MIT-License)";
 
   public static final String EOL = "\n";
 
   public static final String VERSION = "This Software uses:" + Strings.EOL + "ANTLR 4.7.1" + Strings.EOL
                                        + "Controlsfx 8.40.14" + Strings.EOL + "Graphstream 1.3" + Strings.EOL
                                        + "Neo4J Java Driver 1.7" + " (Compatible with 3.1 - 3.5 neo4j servers)"
-                                       + Strings.EOL + Strings.EOL + "Version: 1.2.5";
+                                       + Strings.EOL + Strings.EOL + "Version:" + SWVERSION;
   private static final String FXML_PATH = "/de/mach/tools/neodesigner/ui/";
 
   public static final String FXML_ICON = Strings.FXML_PATH + "db.png";
 
   public static final String FXML_FKRELEDITOR = Strings.FXML_PATH + "fkRelEditor.fxml";
+
+  public static final String FXML_NEOMODULE = Strings.FXML_PATH + "neocon.fxml";
 
   static final String FXML_NEDDBDESIGNER = Strings.FXML_PATH + "neoDBDesignerView.fxml";
 
@@ -57,7 +60,7 @@ public final class Strings {
 
   public static final String TITLE_IMPORTSQL = "Open SQL File";
 
-  public static final String TITLE_EXPORTCSV = "Open CSV File";
+  public static final String TITLE_EXPORTCSV = "Open CSV Files";
 
   public static final String TITLE_RELEDITOR = "Edit Relation";
 
@@ -97,9 +100,9 @@ public final class Strings {
 
   public static final String ALTEXT_DATABASEERR_UNEX_ERR = "There was an " + "unexpected error while importing";
 
-  public static final String INDEXTOOLTIP = "Primärschlüssel: „XPK“\n" + "Fremschlüssel: „R“\n"
-                                            + "Indizes für Fremdschlüssel: „XIF“\n" + "Eindeutige Indizes: „XAK“\n"
-                                            + "Einfache Indizes: „XIE“\n";
+  public static final String INDEXTOOLTIP = "Primary Key: „XPK“\n" + "Foreign Key: „R“\n"
+                                            + "Index for Foreignkey: „XIF“\n" + "Unique Index: „XAK“\n"
+                                            + "Simple Index: „XIE“\n";
 
   public static final String NAME_SECONDELEMENT = "_new";
 
@@ -113,14 +116,14 @@ public final class Strings {
 
   static final String NAME_FKS = "Foreign Keys";
 
-  static final String ALTITLE_DELTABLE = "Delete Table";
+  public static final String ALTITLE_DELTABLE = "Delete Table";
 
-  static final String ALTEXT_DELTABLE = "This Action will " + "delete the following Table permanently: ";
+  public static final String ALTEXT_DELTABLE = "This Action will " + "delete the following Table permanently: ";
 
-  static final String ALTITLE_SAVEERR = "Save Error";
+  public static final String ALTITLE_SAVEERR = "Save Error";
 
-  static final String ALTEXT_SAVEERR = "Saving failed! This " + "Table is not valid or the Database is offline."
-                                       + " Please solve following Error:";
+  public static final String ALTEXT_SAVEERR = "Saving failed! This " + "Table is not valid or the Database is offline."
+                                              + " Please solve following Error:";
 
   static final String NAME_INDEXES = "Indexes"; // Deutsch: indizes
 
@@ -138,9 +141,9 @@ public final class Strings {
 
   public static final String NAME_FIELD_ISNULL = "Required";
 
-  public static final String NAME_FIELD_ISPRIM = "Primaer";
+  public static final String NAME_FIELD_ISPRIM = "Primary";
 
-  public static final String NAME_FIELD_DATATYPE = "type";
+  public static final String NAME_FIELD_DATATYPE = "Type";
 
   public static final String NAME_INDEX_ISUNIQUE = "unique";
 
@@ -169,7 +172,7 @@ public final class Strings {
   public static final String ALTEXT_DATABASEERR_NOTEMPTY = "The database already contains information. Importing "
                                                            + "another datamodel could mess up the database.";
 
-  public static final String ALTEXT_CLEANDATABASE = "Do you want to clean the database before importing a new "
+  public static final String ALTEXT_CLEANDATABASE = "Do you want to delete the database before importing a new "
                                                     + "datamodel?";
 
   public static final String TITLE_EXPORTSQL = "Choose Export SQL File";
@@ -196,6 +199,8 @@ public final class Strings {
 
   public static final String TABLEROW_COMMENT = "Comment";
 
+  public static final String TABLEROW_ORDER = "Order";
+
   public static final String DEFAULT_CATEGORY = "0,0";
 
   public static final String NAME_CATEGORY = " Category";
@@ -211,17 +216,17 @@ public final class Strings {
 
   public static final String LOG_WARNINGLOADDBMORETHANONCE = "loading failed - loading already in progress!";
 
-  public static final char TYPE_CQL = 'y';
-
   public static final char TYPE_SQL = 's';
+
+  public static final char TYPE_SQL_PART = 'p';
 
   public static final char TYPE_CSV = 'c';
 
-  static final String LOG_COULDNOTSAVE = "Could not save:";
+  public static final Character TYPE_JSON = 'j';
 
   public static final String TITLE_PDF_EXPORT = "Model Report PDF Printer";
 
-  public static final String PATH_ERROR = "Pfad Fehler";
+  public static final String PATH_ERROR = "Path Error";
 
   public static final String PATH_ERROR_DETAIL = "Nicht alle notwendigen Pfade wurden gesetzt!";
 
@@ -268,6 +273,10 @@ public final class Strings {
   public static final String ALLNODES = "All Nodes";
 
   public static final String SPACERFORINFO = ":\t";
+
+  public static final String PATH_NEO4J = "\\bin\\neo4j.bat";
+
+  public static final String LOADFROMDB = "DB geladen in ms: ";
 
   private Strings() {}
 }

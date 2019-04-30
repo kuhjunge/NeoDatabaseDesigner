@@ -14,67 +14,57 @@ package de.mach.tools.neodesigner.core;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 
 import de.mach.tools.neodesigner.core.category.CategoryObj;
-import de.mach.tools.neodesigner.core.category.CategoryTranslator;
 import de.mach.tools.neodesigner.core.category.ViewCategoryObj;
 import de.mach.tools.neodesigner.core.datamodel.Table;
 import de.mach.tools.neodesigner.core.datamodel.impl.TableImpl;
-import de.mach.tools.neodesigner.database.local.LocalDatabaseManager;
 
 
-public class TestCategory {
+class TestCategory {
   @Test
-  public void testDataModel() {
+  void testDataModel() {
     final CategoryObj cobj = new CategoryObj("1,1", 1, "PrimeCategory");
-    assertTrue(cobj.getCategory().equals("1,1"));
-    assertTrue(cobj.getCategoryText().equals("PrimeCategory"));
-    assertTrue(cobj.getDisplayText().equals("(1,1) PrimeCategory"));
-    assertTrue(cobj.toString().equals("(1,1) PrimeCategory(id: 1 sid: 1)"));
+    assertEquals("1,1", cobj.getCategory());
+    assertEquals("PrimeCategory", cobj.getCategoryText());
+    assertEquals("(1,1) PrimeCategory", cobj.getDisplayText());
+    assertEquals("(1,1) PrimeCategory(id: 1 sid: 1)", cobj.toString());
     cobj.setCategory("1,2");
-    assertTrue(cobj.getCategory().equals("1,2"));
+    assertEquals("1,2", cobj.getCategory());
     cobj.setCategoryText("BestCategory");
-    assertTrue(cobj.getCategoryText().equals("BestCategory"));
+    assertEquals("BestCategory", cobj.getCategoryText());
   }
 
   @Test
-  public void testViewDataModel() {
+  void testViewDataModel() {
     final ViewCategoryObj cobj = new ViewCategoryObj(new CategoryObj("1,1", 1, "PrimeCategory"));
-    assertTrue(cobj.getCategory().equals("1,1"));
-    assertTrue(cobj.getCategoryText().equals("PrimeCategory"));
-    assertTrue(cobj.toString().equals("(1,1) PrimeCategory(id: 1 sid: 1)"));
+    assertEquals("1,1", cobj.getCategory());
+    assertEquals("PrimeCategory", cobj.getCategoryText());
+    assertEquals("(1,1) PrimeCategory(id: 1 sid: 1)", cobj.toString());
     cobj.getId().set("1,2");
-    assertTrue(cobj.getCategory().equals("1,2"));
+    assertEquals("1,2", cobj.getCategory());
     cobj.getName().set("BestCategory");
-    assertTrue(cobj.getCategoryText().equals("BestCategory"));
+    assertEquals("BestCategory", cobj.getCategoryText());
   }
 
   @Test
-  public void testCategoryTranslator() {
-    final CategoryTranslator catTrans = new MockCategoryTranslator();
-    final LocalDatabaseManager ldm = new LocalDatabaseManager(true);
+  void testCategoryTranslator() {
+    final MockConfigSaver catConf = new MockConfigSaver();
+    catConf.setValue(Strings.SECTION + "1,1", "firstCategory");
+    final Model model = new ModelImpl(new MockConfigSaver(), catConf);
     for (int i = 0; i < 5; i++) {
       final Table t = new TableImpl("FirstTable");
       t.setCategory("1," + i);
-      ldm.importTable(t);
+      model.getSaveObj().insertNewTable(t);
     }
-    catTrans.load(ldm.getListWithCategories());
-    assertTrue(catTrans.translateNumberIntoName("1,1").equals("1-1"));
-    assertTrue(catTrans.translateNumberIntoName("1,2").equals("1-2"));
-    assertTrue(catTrans.translateNumberIntoName("1,3").equals("1-3"));
-    assertTrue(catTrans.translateNumberIntoName("1,4").equals("1-4"));
-    assertTrue(!catTrans.translateNumberIntoName("1,5").equals("1-5"));
-  }
-
-  @Test
-  public void testCategoryTranslator2() {
-    final MockCategoryTranslator catTrans = new MockCategoryTranslator();
-    catTrans.tableToCat(TestUtil.getTableList());
-    assertTrue(catTrans.translateNumberIntoName("1,1").equals("1,1"));
-    assertTrue(catTrans.translateNumberIntoName("1,2").equals("1,2"));
-    assertTrue(catTrans.translateNumberIntoName("1,3").equals("1,3"));
-    assertTrue(catTrans.translateNumberIntoName("1,4").equals("1,4"));
-    assertTrue(catTrans.translateNumberIntoName("1,5").equals("1,5"));
+    Map<String, String> categories = model.getCategoryTranslation();
+    assertEquals("firstCategory", categories.get("1,1"));
+    assertEquals("1,2", categories.get("1,2"));
+    assertEquals("1,3", categories.get("1,3"));
+    assertEquals("1,4", categories.get("1,4"));
+    assertNull(categories.get("1,5"));
   }
 }

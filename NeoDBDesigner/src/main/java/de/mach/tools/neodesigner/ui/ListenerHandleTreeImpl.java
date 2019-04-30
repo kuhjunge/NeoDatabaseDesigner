@@ -16,7 +16,7 @@ import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.input.MouseButton;
 
-import de.mach.tools.neodesigner.ui.controller.NeoDbDesignerController;
+import de.mach.tools.neodesigner.ui.controller.MainController;
 
 
 /** Implementation des Listener.
@@ -24,14 +24,14 @@ import de.mach.tools.neodesigner.ui.controller.NeoDbDesignerController;
  * @author Chris Deter */
 class ListenerHandleTreeImpl implements ListenerHandle {
 
-  private final NeoDbDesignerController neoDbD;
+  private final MainController neoDbD;
   private final TreeView<String> treeView;
 
   /** Konstruktor.
    *
    * @param ndbd Controller
    * @param tv Treeview */
-  ListenerHandleTreeImpl(final NeoDbDesignerController ndbd, final TreeView<String> tv) {
+  ListenerHandleTreeImpl(final MainController ndbd, final TreeView<String> tv) {
     neoDbD = ndbd;
     treeView = tv;
   }

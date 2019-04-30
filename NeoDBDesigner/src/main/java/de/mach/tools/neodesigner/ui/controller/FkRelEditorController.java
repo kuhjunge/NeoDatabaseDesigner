@@ -37,21 +37,23 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.image.Image;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 
-import org.controlsfx.control.textfield.TextFields;
-
 import de.mach.tools.neodesigner.core.Model;
+import de.mach.tools.neodesigner.core.Validator;
 import de.mach.tools.neodesigner.core.datamodel.Field;
 import de.mach.tools.neodesigner.core.datamodel.Table;
 import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewField;
 import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewForeignKey;
 import de.mach.tools.neodesigner.core.datamodel.viewimpl.ViewTable;
+import de.mach.tools.neodesigner.ui.GuiUtil;
 import de.mach.tools.neodesigner.ui.Strings;
+import de.mach.tools.neodesigner.ui.controller.customcells.NameCell;
 
 
 /** Diese Klasse stellt einen Editor für einen Fremdschlüssel bereit.
@@ -59,6 +61,7 @@ import de.mach.tools.neodesigner.ui.Strings;
  * @author Chris Deter */
 public class FkRelEditorController implements Initializable {
   private static final Logger LOG = Logger.getLogger(FkRelEditorController.class.getName());
+  private Validator val;
 
   /** Startet den Dialog zum Bearbeiten eines FKs.
    *
@@ -67,14 +70,14 @@ public class FkRelEditorController implements Initializable {
    * @param ndbm das Model
    * @param primaryStage das Fenster */
   public static void startFkRelEditor(final ViewTable t, final ViewForeignKey m, final Model ndbm,
-                                      final Window primaryStage, final TableView<ViewForeignKey> tv) {
+                                      final Window primaryStage, final TableView<ViewForeignKey> tv, Validator val) {
     Parent root;
     FkRelEditorController relContrl;
     if (m != null) {
       try {
         final FXMLLoader fxmlLoader = new FXMLLoader(t.getClass().getResource(Strings.FXML_FKRELEDITOR));
         relContrl = new FkRelEditorController();
-        relContrl.setData(t, m, ndbm, tv);
+        relContrl.setData(t, m, ndbm, tv, val);
         fxmlLoader.setController(relContrl);
         root = fxmlLoader.load();
         final Stage stage = new Stage();
@@ -161,7 +164,7 @@ public class FkRelEditorController implements Initializable {
       // Feld hat kein Index und ist nicht in den neuen Feldern (lvf)
       // enhalten
       if (!vf.hasIndex() && !lvf.contains(vf)) {
-        table.getDeleteRaw().add(vf);
+        table.addNoteToDeleteList(vf);
         table.getDataFieldsRaw().remove(vf);
         // Feld ist in den neuen Feldern enthalten
       }
@@ -173,13 +176,16 @@ public class FkRelEditorController implements Initializable {
     labelName.setText(Strings.LABELNAME_TABLE + table.getName());
     textFieldFkName.setText(fk.getName());
     textFieldFkTable.setText(fk.getRefTable().getName());
-    TextFields.bindAutoCompletion(textFieldFkTable, ndbm.getListWithTableNames().toArray());
+    GuiUtil.getAutocomplete(textFieldFkTable, ndbm.getListWithTableNames());
     // Holt alle ViewField mithilve von t.getVData die fk getField
     // zugeorndet sind (ansonsten hätten wir nur Field)
     lvf.addAll(table.getDataFieldsRaw().stream().filter(p -> fk.getIndex().getFieldList().contains(p))
         .collect(Collectors.toList()));
     oldLvf = new ArrayList<>(lvf);
     loadItems(fk, lvf);
+    final Tooltip tooltip = new Tooltip();
+    tooltip.setText("If activated, it will be ensured that \nalready existing Fields will not be replaced");
+    chkBoxAutoCreate.setTooltip(tooltip);
   }
 
   private void insertNewFields(final ArrayList<Field> fieldsOfRefTblPk, final ViewForeignKey fk) {
@@ -197,7 +203,6 @@ public class FkRelEditorController implements Initializable {
     }
   }
 
-  @SuppressWarnings("unchecked")
   private void loadItems(final ViewForeignKey fk, final List<ViewField> lvf) {
     tableMatching.getItems().clear();
     tableMatching.getColumns().clear();
@@ -208,7 +213,7 @@ public class FkRelEditorController implements Initializable {
     final TableColumn<ViewField, String> fieldCol = new TableColumn<>(Strings.TABLEROW_NAME);
     fieldCol.setMinWidth(180);
     fieldCol.setCellValueFactory(f -> f.getValue().nameProperty());
-    fieldCol.setCellFactory(TextFieldTableCell.forTableColumn());
+    fieldCol.setCellFactory(NameCell.forTableColumn(val));
 
     final TableColumn<ViewField, String> refFieldCol = new TableColumn<>(Strings.TABLEROW_REFNAME);
     refFieldCol.setMinWidth(180);
@@ -226,13 +231,13 @@ public class FkRelEditorController implements Initializable {
 
   @FXML
   private void onDelete(final ActionEvent event) {
-    table.getDeleteRaw().add(oldFk);
+    table.addNoteToDeleteList(oldFk);
     table.getForeignKeysRaw().remove(oldFk);
-    table.getDeleteRaw().add(oldFk.getVIndex());
+    table.addNoteToDeleteList(oldFk.getVIndex());
     table.getIndizesRaw().remove(oldFk.getVIndex());
     for (final ViewField vf : oldLvf) {
       if (!vf.hasIndex()) {
-        table.getDeleteRaw().add(vf);
+        table.addNoteToDeleteList(vf);
         table.getDataFieldsRaw().remove(vf);
       }
     }
@@ -284,7 +289,8 @@ public class FkRelEditorController implements Initializable {
     if (table.getForeignKeysRaw().contains(fk)) {
       table.getForeignKeysRaw().remove(oldFk);
       table.getIndizesRaw().remove(oldFk.getVIndex());
-      table.getDeleteRaw().addAll(oldFk, oldFk.getVIndex());
+      table.addNoteToDeleteList(oldFk);
+      table.addNoteToDeleteList(oldFk.getVIndex());
       // Felder löschen
       deleteOldFields();
     }
@@ -320,12 +326,14 @@ public class FkRelEditorController implements Initializable {
    * @param in ViewForeignKey
    * @param m Model (für Fremd Tabellenabfrage)
    * @param tv der TableView, wichtig um geänderte Informationen zu übertragen */
-  private void setData(final ViewTable ta, final ViewForeignKey in, final Model m, final TableView<ViewForeignKey> tv) {
+  private void setData(final ViewTable ta, final ViewForeignKey in, final Model m, final TableView<ViewForeignKey> tv,
+                       Validator val) {
     table = ta;
     oldFk = in;
     fk = new ViewForeignKey(in, table);
     ndbm = m;
     tvfk = tv;
+    this.val = val;
   }
 
   private SimpleObjectProperty<String> tableRefName(final ViewForeignKey fk,

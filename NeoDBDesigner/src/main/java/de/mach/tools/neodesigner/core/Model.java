@@ -12,204 +12,138 @@
 package de.mach.tools.neodesigner.core;
 
 
-import java.io.File;
 import java.util.List;
 import java.util.Map;
-import java.util.Observable;
 import java.util.Optional;
 
 import de.mach.tools.neodesigner.core.category.CategoryObj;
 import de.mach.tools.neodesigner.core.datamodel.Index;
 import de.mach.tools.neodesigner.core.datamodel.Table;
-import de.mach.tools.neodesigner.core.nexport.Generator;
-import de.mach.tools.neodesigner.core.nexport.pdf.PdfConf;
-import de.mach.tools.neodesigner.core.nimport.ImportTask;
+import de.mach.tools.neodesigner.inex.ImportTask;
+import de.mach.tools.neodesigner.inex.nexport.pdf.PdfConf;
 import de.mach.tools.neodesigner.ui.GuiConf;
 
 
-/** Schnittstelle f�r den View (der dr�berliegenden Schicht).
+/** Schnittstelle für den View (der drüberliegenden Schicht).
  *
  * @author Chris Deter */
 public interface Model {
 
-  /** L�d eine Liste mit Tabellen ins Model.
-   *
-   * @param lt Liste mit Tabellen */
-  void addTableList(List<Table> lt);
-
-  /** Spezieller Import Task, der den Import direkt �ber die Datenbank Binarys durchf�hrt
-   *
-   * @param folder
-   * @return */
-  ImportTask bulkimportTask(File folder);
-
-  /** stellt eine Verbindung mit der Datenbank her.
-   *
-   * @param dbadr Adresse der Datenbank
-   * @param usr Nutzername
-   * @param pw Passwort
-   * @return true bei einer erfolgreichen Verbindung */
-  boolean connectDb(String dbadr, String usr, String pw);
-
   /** stellt eine Verbindung mit der lokalen Datenbank her. */
-  void connectLocalDb();
+  void connect();
 
-  /** Gibt ein Observable des Datenmodells zur�ck (f�r TreeView).
-   *
-   * @return Observable des Datenmodells */
-  Observable dataModelObservable();
-
-  /** L�scht die gesammte Datenbank. */
+  /** Löscht die gesammte Datenbank. */
   boolean deleteDatabase();
 
-  /** trennt die Verbindung zur Datenbank. */
-  void disconnectDb();
-
-  /** gibt die Adresse der Datenbank zur�ck.
+  /** gibt die Adresse der Datenbank zurück.
    *
    * @return Datenbankadresse */
   String getAddrOfDb();
 
-  /** Gibt eine Liste mit allen Kategorien in der Datenbank zur�ck.
+  /** Gibt eine Liste mit allen Kategorien in der Datenbank zurück.
    *
    * @return Liste mit allen Kategorien. */
   List<String> getAllCategories();
 
-  /** l�d alle Tabellen aus der Datenbank (genutzt in LoadFromDBTask).
+  /** läd alle Tabellen aus der Datenbank (genutzt in LoadFromDBTask).
    *
    * @return Liste mit allen Datenbankfeldern */
   List<Table> getAllTables();
 
-  /** f�llt das Kategorie Auswahlfeld.
+  /** füllt das Kategorie Auswahlfeld.
    *
    * @return sortierte Category List */
   List<CategoryObj> getCategorySelection();
 
-  /** Gibt informationen �ber die Gr��e der Datenbank zur�ck.
+  /** Gibt informationen über die Größe der Datenbank zurück.
    *
    * @return Map mit Eigenschaften der Datenbank */
   Map<String, Integer> getDatabaseStats();
 
-  /** Konfigurationsm�glichkeiten der Gui
+  /** Konfigurationsmöglichkeiten der Gui
    *
-   * @return */
+   * @return Konfigurationsoptionen der GUI */
   GuiConf getGuiConf();
 
-  /** gibt eine List mit Strings zur�ck, die alle Namen der Datenbanken enth�lt. (f�r Autocomplete)
+  /** gibt eine List mit Strings zurück, die alle Namen der Datenbanken enthält. (für Autocomplete)
    *
    * @return Liste mit Strings von allen Tabellen in der Datenbank */
   List<String> getListWithTableNames();
 
-  /** gibt eine neue Tabelle zur�ck.
+  /** gibt eine neue Tabelle zurück.
    *
    * @param tableName Name der Tabelle
    * @return New Table */
-  Table getnewTable(String tableName);
+  Table getNewTable(String tableName);
 
-  /** gibt eine laufende Nummer f�r die Fremdschl�ssel zur�ck.
+  /** gibt eine laufende Nummer für die Fremdschlüssel zurück.
    *
-   * @param i
-   * @return n�chste Fremdschl�sselnummer */
+   * @param i aktuelle Indexnummer
+   * @return nächste Fremdschlüsselnummer */
   int getNextFkNumber(int i);
 
-  /** gibt die n�chste Nummer f�r den Index in einer Tabelle zur�ck.
+  /** gibt die nächste Nummer für den Index in einer Tabelle zurück.
    *
    * @param li Liste mit allen Indizes der Tabelle
    * @return die neue nummer */
   Integer getNextNumberForIndex(List<Index> li);
 
-  /** gibt die Config f�r den PDF Export zur�ck.
+  /** gibt die Config für den PDF Export zurück.
    *
    * @return pdf Config */
   PdfConf getPdfConfig();
 
-  /** gibt ein Objekt zur�ck auf dem gespeichert werden kann.
+  /** gibt ein Objekt zurück auf dem gespeichert werden kann.
    *
    * @return das Save Objekt */
   Save getSaveObj();
 
-  /** gibt einen Array mit allen Datentypen f�r das Select Feld zur�ck.
+  /** gibt einen Array mit allen Datentypen für das Select Feld zurück.
    *
-   * @return Array mit allen Datentypen f�r das Select Feld */
+   * @return Array mit allen Datentypen für das Select Feld */
   String[] getSelectDatatype();
 
-  /** gibt eine Tabelle aus der Datenbank zur�ck.
+  /** gibt eine Tabelle aus der Datenbank zurück.
    *
    * @param tablename Name der Tabelle
    * @return die angeforderte Tabelle aus der Datenbank oder Null */
   Optional<Table> getTable(String tablename);
 
-  /** gibt eine Tabelle aus der Datenbank zur�ck.
+  /** Gibt die Länge zurück, in der ein Tabellenname eindeutig sein muss.
    *
-   * @param tablename Name der Tabelle
-   * @param useLocalDb true: nutze Datenmodell als quelle: false: lade Tabelle aus Datenbank
-   * @return die angeforderte Tabelle aus der Datenbank oder Null */
-  Optional<Table> getTable(String tablename, boolean useLocalDb);
-
-  /** Gibt die L�nge zur�ck, in der ein Tabellenname eindeutig sein muss.
-   *
-   * @return int mit eindeutiger L�nge */
+   * @return int mit eindeutiger Länge */
   Validator getValidator();
 
-  /** gibt die Maximale Wortl�nge f�r Namen zur�ck.
+  /** gibt die Maximale Wortlänge für Namen zurück.
    *
-   * @return Max Wortl�nge */
+   * @return Max Wortlänge */
   int getWordLength();
+
+  /** Gibt einen Import Task zurück
+   * 
+   * @param input String mit Input Dateien
+   * @param type Typ des Importes (s für SQL)
+   * @param inputPath Pfad aus dem Importiert werden soll
+   * @return einen Import Task, der gestartet werden kann */
+  ImportTask importTask(String input, char type, String inputPath);
 
   /** Importiert ein ganzes Verzeichnis (mit CSV Dateien).
    *
-   * @param file Die Dateien
    * @return den Task zum Importieren */
-  ImportTask importFolderTask(File file);
-
-  /** gibt einen ImportTask zur�ck.
-   *
-   * @param f Die zu importierende Datei
-   * @param type Typ des imports. c f�r CSV, s f�r SQL
-   * @return Task */
-  ImportTask importTask(File f, char type);
-
-  /** Gibt die Information zur�ck ob eine Datei bekannt ist um den Neo4J Server zu starten.
-   *
-   * @return True wenn die Neo4j Startdatei gefunden wurde */
-  Boolean isNeoServerStarterFileKnown();
-
-  /** gibt an ob die Datenbank online ist.
-   *
-   * @return True wenn die Datenbank online ist */
-  boolean isOnline();
-
-  /** Task welche Daten aus der DB l�d.
-   *
-   * @return Task */
-  LoadFromDbTask loadFromDbTask();
+  ImportTask importFolderTask(final String path, final String tbls, final String cols, final String pKeys,
+                              final String idxs, final String fKeys, final String metaTbls, final String metaCols);
 
   /** Speichert eine Liste mit Kategorien ab.
    *
    * @param map die Liste mit Kategorien */
   void saveCategoryList(Map<String, String> map);
 
-  /** Setzt einen neuen Ordner in dem der Neo4J Server liegt.
-   *
-   * @param folder der Ordner
-   * @return ob das setzen des neuen Neo4J Ordners geklappt hat */
-  Boolean setNewNeoServerFolder(File folder);
+  /** Läd die Kategorien neu. */
+  void reloadCategories();
 
-  /** Startet den Neo4J Server.
-   *
-   * @return true, wenn der Server gestartet worden ist */
-  Boolean startNeoServer();
+  void importTables(List<Table> list);
 
-  /** Schreibt eine Exportdatei.
-   *
-   * @param f Die Datei
-   * @param gen Der zu verwendene Generator
-   * @return true wenn die Datei auf die Festplatte geschrieben wurde */
-  Boolean writeExportFile(File f, Generator gen);
+  void addDataModelListener(DatamodelListener listener);
 
-  /** Schreibt im Zielverzeichnis alle CSV Dateien die f�r die Datenbank Toolchain ben�tigt werden.
-   *
-   * @param file der Zielordner
-   * @return die Dateien */
-  boolean writeToolchainReport(File file);
+  Map<String, String> getCategoryTranslation();
 }

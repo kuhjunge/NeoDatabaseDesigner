@@ -4,6 +4,7 @@
 .metadata
 /bin/
 /build/
+/out/
 /.gradle
 /.settings/*
 !/.settings/org.eclipse.jdt.core.prefs

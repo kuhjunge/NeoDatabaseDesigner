@@ -91,17 +91,17 @@ public class Validator {
    *
    * @param name der Name
    * @return True wenn der Name okay ist, ansonsten False */
-  public boolean validateFieldName(final String name) {
+  public boolean isFieldNameInvalid(final String name) {
     String lname = name.trim();
     boolean ret = isNameOkay(lname, maxColumnNameLength);
     if (ret) {
-      final List<String> altName = dm.getFieldNameCase(lname);
+      final List<String> altName = dm.getFieldNameWithoutCase(lname);
       if (!altName.isEmpty() && !altName.contains(lname)) {
         ret = false;
         lastError = String.format(Strings.VALIDATOR_NAMEWIHTANOTHERCASE, lname, altName);
       }
     }
-    return ret;
+    return !ret;
   }
 
   /** prüft einen Namen auf Korrektheit.
@@ -132,13 +132,15 @@ public class Validator {
     }
     final Optional<Table> before = dm.getTable(t.getName());
     // Prüft ob ein Feld mit dem selben Namen bereits vorhanden ist
-    check = checkPrimFieldValid(t, check, before);
+    if (before.isPresent()) {
+      check = checkPrimFieldValid(t, check, before.get());
+    }
     return check;
   }
 
-  private boolean checkPrimFieldValid(final Table t, boolean check, final Optional<Table> before) {
+  private boolean checkPrimFieldValid(final Table t, boolean check, final Table before) {
     for (final Field f : t.getFields()) {
-      if (f.isPartOfPrimaryKey() && !(before.isPresent() && before.get().getXpk().getFieldList().contains(f))) {
+      if (f.isPartOfPrimaryKey() && !(before.getXpk().getFieldList().contains(f))) {
         for (final ForeignKey fk : t.getRefForeignKeys()) {
           if (fk.getTable().getFields().contains(f)) {
             lastError = Strings.VALIDATOR_PRIMAERFIELDNOTVALID;
@@ -146,7 +148,7 @@ public class Validator {
           }
         }
         // Prüft ob ein Feld entfernt wird, was bereits Teil eines Pks ist
-        if (!f.isPartOfPrimaryKey() && before.isPresent() && before.get().getXpk().getFieldList().contains(f)) {
+        if (!f.isPartOfPrimaryKey() && before.getXpk().getFieldList().contains(f)) {
           for (final ForeignKey fk : t.getRefForeignKeys()) {
             for (final Field fx : fk.getIndex().getFieldList()) {
               if (fx.isPartOfPrimaryKey()) {
@@ -176,7 +178,7 @@ public class Validator {
   private boolean checkFields(final Table t, final boolean c) {
     boolean check = c;
     for (final Field f : t.getFields()) {
-      if (!validateFieldName(f.getName().trim())) {
+      if (isFieldNameInvalid(f.getName().trim())) {
         check = false;
       }
       int i = 0;

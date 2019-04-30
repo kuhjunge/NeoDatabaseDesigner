@@ -21,21 +21,41 @@ import java.net.URL;
 import org.junit.jupiter.api.Test;
 
 
-public class TestFXPaths {
+class TestFXPaths {
 
   @Test
-  public void testMainFxml() {
+  void testMainFxml() {
     checkPath(Strings.FXML_NEDDBDESIGNER);
   }
 
   @Test
-  public void testFkFxml() {
+  void testFkFxml() {
     checkPath(Strings.FXML_FKRELEDITOR);
   }
 
   @Test
-  public void testIndexFxml() {
+  void testTableTab() {
+    checkPath(Strings.FXML_TABLEVIEW);
+  }
+
+  @Test
+  void testIndexFxml() {
     checkPath(Strings.FXML_INDEXRELEDITOR);
+  }
+
+  @Test
+  void testModelPrinterFxml() {
+    checkPath(Strings.FXML_PDFEDITOR);
+  }
+
+  @Test
+  void testModelNeoModuleFxml() {
+    checkPath(Strings.FXML_NEOMODULE);
+  }
+
+  @Test
+  void testIcon() {
+    checkPath(Strings.FXML_ICON);
   }
 
   private void checkPath(final String p) {

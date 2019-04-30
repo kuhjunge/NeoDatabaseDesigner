@@ -12,7 +12,6 @@
 package de.mach.tools.neodesigner.core.datamodel.impl;
 
 
-import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,7 +30,7 @@ public class ForeignKeyImpl extends NodeImpl implements ForeignKey {
   private Table refTable = null;
   private Index fieldIndex = null;
 
-  public ForeignKeyImpl(final ForeignKey fk, final Table nodeOf, final Table refTab) {
+  private ForeignKeyImpl(final ForeignKey fk, final Table nodeOf, final Table refTab) {
     super(fk.getName(), nodeOf);
     setIndex(nodeOf.getIndizies().get(nodeOf.getIndizies().indexOf(fk.getIndex())));
     setRefTable(refTab);
@@ -58,11 +57,12 @@ public class ForeignKeyImpl extends NodeImpl implements ForeignKey {
   public String getAltName(final String fieldName) {
     // Fragt den Namen des Feldes in der Ref Tabelle ab. Matching über
     // Ordnungsnummer
-    return getOptName(refTable.getXpk().getFieldByOrder(getIndex().getOrder(fieldName, true), false));
+    int number = getIndex().getOrder(fieldName, true);
+    return getOptName(refTable.getXpk().getFieldByOrder(number, false));
   }
 
   @Override
-  public Optional<Field> getFieldOfTableByOrder(final Field xpkf) {
+  public Field getFieldOfTableByOrder(final Field xpkf) {
     final int order = refTable.getXpk().getOrder(xpkf.getName(), false);
     return getIndex().getFieldByOrder(order, true);
   }
@@ -82,10 +82,10 @@ public class ForeignKeyImpl extends NodeImpl implements ForeignKey {
     return "ForeignKey";
   }
 
-  private String getOptName(final Optional<Field> opf) {
+  private String getOptName(final Field opf) {
     String ret = Strings.EMPTYSTRING;
-    if (opf.isPresent()) {
-      ret = opf.get().getName();
+    if (opf != null) {
+      ret = opf.getName();
     }
     else {
       ForeignKeyImpl.LOG.log(Level.SEVERE, "Optional not there, should not happen.");

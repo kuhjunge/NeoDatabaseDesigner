@@ -22,7 +22,7 @@ import de.mach.tools.neodesigner.core.datamodel.Field;
 public class FieldWrapper implements Comparable<FieldWrapper> {
   private Field field;
   private int order;
-  private int refOrder = 0;
+  private int refOrder = 0; // Ordnung in der Referenz
 
   /** Fieldwrapper Konstruktor.
    *
@@ -50,7 +50,7 @@ public class FieldWrapper implements Comparable<FieldWrapper> {
   /** Getter.
    *
    * @return Das Feldelement */
-  public Field getField() {
+  private Field getField() {
     return field;
   }
 

@@ -12,9 +12,6 @@
 package de.mach.tools.neodesigner.core.datamodel;
 
 
-import java.util.Optional;
-
-
 /** Represnetiert einen Fremdschlüssel im Relationalen Datenbankmodel.
  *
  * @author Chris Deter */
@@ -26,7 +23,7 @@ public interface ForeignKey extends Node {
    * @return alternativer Name des Feldes */
   String getAltName(String name);
 
-  Optional<Field> getFieldOfTableByOrder(Field xpkf);
+  Field getFieldOfTableByOrder(Field xpkf);
 
   /** gibt den Index zu diesem FK zurück.
    *

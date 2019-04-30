@@ -12,8 +12,18 @@
 package de.mach.tools.neodesigner.ui;
 
 
+import java.util.List;
 import javafx.application.Platform;
 import javafx.scene.Node;
+import javafx.scene.control.TextField;
+
+import org.controlsfx.control.Notifications;
+import org.controlsfx.control.textfield.AutoCompletionBinding;
+import org.controlsfx.control.textfield.TextFields;
+import org.controlsfx.validation.Severity;
+import org.controlsfx.validation.ValidationResult;
+import org.controlsfx.validation.ValidationSupport;
+import org.controlsfx.validation.Validator;
 
 
 /** Util Funktionen der GUI.
@@ -33,5 +43,40 @@ public class GuiUtil {
         GuiUtil.repeatFocus(node);
       }
     });
+  }
+
+  /** Erzeugt die Validierungsanzeige für die Tabelle.
+   *
+   * @param textfield das Feld in dem die Validierung angezeigt werden soll
+   * @param validator2 der Validator für die Tabelle
+   * @param string der alte Name der Tabelle */
+  public static void validator(final TextField textfield, final de.mach.tools.neodesigner.core.Validator validator2,
+                               final String string) {
+    final ValidationSupport support = new ValidationSupport();
+    final Validator<String> validator = (control, value) -> {
+      final boolean condition = value != null && !validator2.validateTableName(value, string);
+      return ValidationResult.fromMessageIf(control, validator2.getLastError(), Severity.ERROR, condition);
+    };
+    support.registerValidator(textfield, false, validator);
+  }
+
+  public static AutoCompletionBinding<String> getAutocomplete(TextField tf, List<String> list) {
+    return TextFields.bindAutoCompletion(tf, list);
+  }
+
+  public static void notification(final String title, final String text) {
+    Notifications.create().title(title).text(text).showInformation();
+  }
+
+  public static void setValidator(final TextField txtfld,
+                                  final de.mach.tools.neodesigner.core.Validator validatorForField) {
+    if (validatorForField != null) {
+      final ValidationSupport support = new ValidationSupport();
+      final Validator<String> validator = (control, value) -> {
+        final boolean condition = value != null && validatorForField.isFieldNameInvalid(value);
+        return ValidationResult.fromMessageIf(control, validatorForField.getLastError(), Severity.ERROR, condition);
+      };
+      support.registerValidator(txtfld, false, validator);
+    }
   }
 }

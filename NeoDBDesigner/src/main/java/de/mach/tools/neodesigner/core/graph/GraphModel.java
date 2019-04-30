@@ -25,6 +25,7 @@ import org.graphstream.graph.Node;
 import org.graphstream.ui.layout.Layout;
 import org.graphstream.ui.layout.springbox.implementations.SpringBox;
 
+import de.mach.tools.neodesigner.core.ConfigSaverImpl;
 import de.mach.tools.neodesigner.core.category.CategoryTranslator;
 import de.mach.tools.neodesigner.core.datamodel.ForeignKey;
 import de.mach.tools.neodesigner.core.datamodel.Table;
@@ -158,7 +159,9 @@ public class GraphModel {
    *
    * @return Map mit Bezeichnung der Kategorie und der Farbe */
   public Map<String, Color> getLegend() {
-    final CategoryTranslator ct = new CategoryTranslator(lt);
+    final CategoryTranslator ct = new CategoryTranslator(new ConfigSaverImpl(de.mach.tools.neodesigner.core.Strings.SOFTWARENAME,
+                                                                             de.mach.tools.neodesigner.core.Strings.CATEGORYFILE));
+    ct.getCategoriesFromTable(lt);
     final Map<String, Color> ret = new LinkedHashMap<>();
     final List<GraphColourObj> gcol = colour.getColour();
     for (final GraphColourObj cat : gcol) {
